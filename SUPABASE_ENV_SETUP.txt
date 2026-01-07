@@ -1,0 +1,9 @@
+# Add these to your .env file
+
+# Supabase Configuration (for problem image uploads)
+SUPABASE_URL=your_supabase_project_url_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+SUPABASE_BUCKET=problem-images
+
+# IMPORTANT: Use SERVICE_ROLE_KEY (not anon key) to bypass Row Level Security
+# Find it in: Supabase Dashboard → Settings → API → service_role key (secret)

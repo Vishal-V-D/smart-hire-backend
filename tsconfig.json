@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "rootDir": "src",
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    // ✅ Added to prevent property initializer errors
+    "strictPropertyInitialization": false
+  },
+  "exclude": [
+    "debug_problem.ts",
+    "fix_driver.ts"
+  ]
+}

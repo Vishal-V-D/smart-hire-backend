@@ -1,0 +1,937 @@
+S.No,Topic,Subtopic,Level,Question,question_image,Options (JSON),Solution (Correct Option Number),Explanation,image_url
+1.0,Numbers,Basic Mathematical Concepts,easy,What is the sum of the place value and the face value of the digit 7 in the number 9753?,no image,"{""1"":""707"",""2"":""700"",""3"":""693"",""4"":""70""}",1.0,"The correct option is 1.
+
+In the number 9753, the digit 7 is in the hundreds place. The place value of a digit is its value based on its position in the number. Therefore, the place value of 7 is 7 × 100 = 700. The face value of a digit is the digit itself, which is 7. The question asks for the sum of the place value and the face value, which is 700 + 7 = 707.
+
+Option 2 is incorrect because 700 is only the place value of the digit 7, not the sum. Option 3 is incorrect because 693 is the difference between the place value and the face value (700 - 7), not the sum. Option 4 is incorrect because 70 would be the place value if the digit 7 were in the tens place, which it is not.",
+2.0,Numbers,Basic Mathematical Concepts,medium,"Two values, A and B, are defined by the expressions shown in the image. What is the result of the operation A - B?",Basic Mathematical Concepts_1766389746746.png,"{""1"":""105"",""2"":""120"",""3"":""45"",""4"":""144""}",1.0,"The correct option is 1.
+
+First, let's calculate the value of A. A is defined as the sum of all prime numbers between 20 and 40. The prime numbers in this range are 23, 29, 31, and 37. Summing these numbers gives: A = 23 + 29 + 31 + 37 = 120.
+
+Next, we calculate the value of B. B is defined as the sum of all odd composite numbers between 10 and 20. The odd numbers in this range are 11, 13, 15, 17, and 19. Among these, 11, 13, 17, and 19 are prime. The only odd composite number is 15 (since 15 = 3 × 5). Therefore, B = 15.
+
+Finally, we perform the subtraction A - B. This gives 120 - 15 = 105.
+
+Option 2 is incorrect. This value of 120 would be the result if B were 0, which would happen if one mistakenly thought there were no odd composite numbers between 10 and 20.
+
+Option 3 is incorrect. This value of 45 is obtained if B is wrongly calculated as the sum of all odd numbers in the range (11 + 13 + 15 + 17 + 19 = 75), leading to an incorrect calculation of 120 - 75 = 45.
+
+Option 4 is incorrect. This value of 144 could be reached if A is miscalculated by including a composite number like 39 (A = 120 + 39 = 159), and then B is subtracted (159 - 15 = 144).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Basic_Mathematical_Concepts_1766389746746.png?
+3.0,Numbers,Basic Mathematical Concepts,hard,"A three-digit number is defined as 'balanced' if it satisfies the condition shown in the image, where 'a' is the hundreds digit, 'b' is the tens digit, and 'c' is the units digit. The digits are not necessarily distinct. What is the sum of all such balanced three-digit numbers?",Basic Mathematical Concepts_1766389823207.png,"{""1"":""24855"",""2"":""22755"",""3"":""19860"",""4"":""29850""}",1.0,"Option 1 is correct. The condition for a three-digit number '100a + 10b + c' to be balanced is given by the equation, which simplifies to 2b = a + c. Here, 'a' must be in {1, 2, ..., 9} and 'b', 'c' must be in {0, 1, ..., 9}. We need to find the sum of all such numbers.
+
+A systematic approach is to categorize the numbers and sum them up. We can use a pairing insight. For any balanced number N = 100a + 10b + c where c is not 0, the number N' = 100c + 10b + a is also a balanced number, since a+c = c+a. The sum of such a pair is N + N' = 101(a+c) + 20b. Substituting a+c = 2b, the sum becomes 101(2b) + 20b = 202b + 20b = 222b.
+
+We can break the problem into three cases:
+Case 1: Palindromic numbers (a = c). The condition 2b = a + c becomes 2b = 2a, so b = a. The numbers are 111, 222, ..., 999. Their sum is 111 * (1 + 2 + ... + 9) = 111 * 45 = 4995.
+
+Case 2: Numbers ending in zero (c = 0). The condition becomes 2b = a. Since 'a' must be a non-zero digit, possible (a,b) pairs are (2,1), (4,2), (6,3), (8,4). This gives the numbers 210, 420, 630, 840. Their sum is 210 + 420 + 630 + 840 = 2100.
+
+Case 3: Asymmetric numbers where a ? c and c ? 0. We count the pairs (N, N') where a < c to avoid double counting. The sum for each pair is 222b. We count the number of pairs for each value of b:
+- b=2 (a+c=4): 1 pair (123, 321). Sum = 1 * 222 * 2 = 444.
+- b=3 (a+c=6): 2 pairs (135, 531; 234, 432). Sum = 2 * 222 * 3 = 1332.
+- b=4 (a+c=8): 3 pairs. Sum = 3 * 222 * 4 = 2664.
+- b=5 (a+c=10): 4 pairs. Sum = 4 * 222 * 5 = 4440.
+- b=6 (a+c=12): 3 pairs. Sum = 3 * 222 * 6 = 3996.
+- b=7 (a+c=14): 2 pairs. Sum = 2 * 222 * 7 = 3108.
+- b=8 (a+c=16): 1 pair. Sum = 1 * 222 * 8 = 1776.
+The total sum for this case is 444 + 1332 + 2664 + 4440 + 3996 + 3108 + 1776 = 17760.
+
+The total sum of all balanced numbers is the sum from all three cases: 4995 (palindromes) + 2100 (ending in 0) + 17760 (asymmetric pairs) = 24855.
+
+Option 2 (22755) is incorrect. This is the result of 24855 - 2100, which happens if one forgets to include the numbers ending in zero (Case 2).
+
+Option 3 (19860) is incorrect. This is the result of 24855 - 4995, which happens if one forgets to include the palindromic numbers (Case 1).
+
+Option 4 (29850) is incorrect. This is the result of 24855 + 4995. This error could occur if one calculates the total sum correctly and then adds the sum of palindromes a second time, possibly due to a miscounting methodology.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Basic_Mathematical_Concepts_1766389823207.png?
+4.0,Numbers,Divisibility Rules,easy,What single digit should replace the asterisk (*) in the number shown in the image to make the number exactly divisible by 9?,Divisibility Rules_1766389851939.png,"{""1"":""0"",""2"":""1"",""3"":""7"",""4"":""8""}",3.0,"Correct option is 3. The divisibility rule for 9 states that a number is divisible by 9 if the sum of its digits is a multiple of 9. For the number 7*31, the sum of the known digits is 7 + 3 + 1 = 11. To make the number divisible by 9, the total sum (11 + *) must be a multiple of 9. The smallest multiple of 9 greater than 11 is 18. So, 11 + * = 18, which gives * = 7. Therefore, the digit to replace the asterisk is 7. Option 1 is incorrect because 7 + 0 + 3 + 1 = 11, which is not a multiple of 9. Option 2 is incorrect because 7 + 1 + 3 + 1 = 12, which is not a multiple of 9. Option 4 is incorrect because 7 + 8 + 3 + 1 = 19, which is not a multiple of 9.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Divisibility_Rules_1766389851939.png?
+5.0,Numbers,Divisibility Rules,medium,"A 10-digit number contains two unknown digits, x and y. Using the condition provided in the image, find the value of the expression also shown.",Divisibility Rules_1766389918186.png,"{""1"":""9"",""2"":""13"",""3"":""5"",""4"":""8""}",1.0,"The correct option is 1.
+
+To be divisible by 88, the number must be divisible by its co-prime factors, which are 8 and 11.
+
+First, we apply the divisibility rule for 8. A number is divisible by 8 if the number formed by its last three digits is divisible by 8. In this case, the last three digits are '8y2'. For '8y2' to be divisible by 8, we can test values for y from 0 to 9. The number 800 is divisible by 8, so we only need to check if 'y2' is divisible by 8. Testing values, we find that 32 (for y=3) and 72 (for y=7) are divisible by 8. Thus, the possible values for y are 3 and 7.
+
+Next, we apply the divisibility rule for 11. A number is divisible by 11 if the difference between the sum of the digits at odd positions and the sum of the digits at even positions is 0 or a multiple of 11. The number is 1330x558y2. The sum of digits at odd positions is 1+3+x+5+y = 9+x+y. The sum of digits at even positions is 3+0+5+8+2 = 18. The difference is |(9+x+y) - 18| = |x+y-9|. This difference must be 0 or a multiple of 11.
+
+We now combine these findings with a case analysis. Case 1: If y = 3, the difference is |x+3-9| = |x-6|. For this to be 0 or 11, x must be 6 (since x is a single digit). In this case, x+y = 6+3 = 9. Case 2: If y = 7, the difference is |x+7-9| = |x-2|. For this to be 0 or 11, x must be 2 (since x is a single digit). In this case, x+y = 2+7 = 9. In both valid scenarios, the value of x+y is 9.
+
+Option 2 (13) would result from incorrectly pairing x=6 with y=7. Option 3 (5) would result from incorrectly pairing x=2 with y=3. Option 4 (8) could arise from a calculation error in the divisibility rule for 11, such as solving |x+y-9| = 1 instead of 0.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Divisibility_Rules_1766389918186.png?
+6.0,Numbers,Divisibility Rules,hard,"A seven-digit number N is represented as 8A09B1C. This number is known to be perfectly divisible by 792. If A, B, and C are single-digit integers, what is the value of the expression shown in the image?",Divisibility Rules_1766389989380.png,"{""1"":""6"",""2"":""14"",""3"":""10"",""4"":""2""}",1.0,"The correct option is 1.
+
+First, we need to find the prime factorization of 792. 792 = 8 × 99 = 8 × 9 × 11. For the number N = 8A09B1C to be divisible by 792, it must be divisible by the co-prime factors 8, 9, and 11.
+
+1. Divisibility by 8: The number formed by the last three digits, B1C, must be divisible by 8. We can write B1C as 100B + 16. A simpler method is to check values. The number '1C' when B is even must be divisible by 8 (e.g., 01C, 21C, etc.), and when B is odd (e.g., 11C, 31C, etc.). Testing shows if B is even, 16 is divisible by 8, so C must be 6 for B1C to be divisible by 8 (e.g., 216, 416). If B is odd, 12 is divisible by 8, so C must be 2 (e.g., 112, 312). Thus, we have two conditions: (i) If B is even, C=6. (ii) If B is odd, C=2.
+
+2. Divisibility by 9: The sum of the digits of N must be divisible by 9. Sum = 8+A+0+9+B+1+C = 18 + A+B+C. Since 18 is divisible by 9, the sum A+B+C must be a multiple of 9.
+
+3. Divisibility by 11: The difference between the sum of digits at odd places and the sum of digits at even places must be a multiple of 11. Odd places: 8, 0, B, C. Sum = 8+B+C. Even places: A, 9, 1. Sum = A+10. Difference = (8+B+C) - (A+10) = B+C-A-2. So, B+C-A-2 must be a multiple of 11.
+
+We now solve using two cases based on the rule for 8.
+
+Case 1: B is odd, so C = 2. 
+From the rule for 11: B+2-A-2 = B-A must be a multiple of 11. Since A and B are single digits, the only possibility is B-A = 0, which means A=B. 
+From the rule for 9: A+B+C = A+A+2 = 2A+2 must be a multiple of 9. So, 2(A+1) must be a multiple of 9. This implies A+1 is a multiple of 9. As A is a single digit, A+1 can only be 9, which means A=8. If A=8, then B=8. This contradicts our initial assumption that B is odd. So, this case is not possible.
+
+Case 2: B is even, so C = 6.
+From the rule for 11: B+6-A-2 = B-A+4 must be a multiple of 11. Since B is an even digit {0,2,4,6,8} and A is a digit {0-9}, the value of B-A+4 ranges from (0-9)+4 = -5 to (8-0)+4 = 12. The only multiples of 11 in this range are 0 and 11. 
+Subcase 2a: B-A+4 = 0 => A = B+4. Now we use the rule for 9: A+B+C = (B+4)+B+6 = 2B+10 must be a multiple of 9. We test the even values for B: If B=0, 2(0)+10=10 (No). If B=2, 2(2)+10=14 (No). If B=4, 2(4)+10=18 (Yes). If B=4, then A=4+4=8. This is a valid solution. A=8, B=4, C=6. 
+Subcase 2b: B-A+4 = 11 => A = B-7. Since A must be non-negative, B must be at least 7. The only even possibility is B=8. If B=8, A=1. Now we use the rule for 9: A+B+C = 1+8+6 = 15, which is not a multiple of 9. This subcase yields no solution.
+
+The only valid solution is A=8, B=4, C=6. The expression is A+B-C = 8+4-6 = 6.
+
+Option 2 (14) is obtained if one incorrectly proceeds with Case 1 (ignoring the contradiction) to get A=8, B=8, C=2. Then A+B-C = 8+8-2 = 14. This is incorrect as N=8809812 is not divisible by 8. Option 3 (10) and Option 4 (2) result from incorrect calculations with the correct A, B, C values (e.g., A-B+C = 8-4+6=10 and -A+B+C = -8+4+6=2).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Divisibility_Rules_1766389989380.png?
+7.0,Numbers,Unit Digits,easy,What is the unit digit of the result of the calculation shown in the image?,Unit Digits_1766390024832.png,"{""1"":""8"",""2"":""2"",""3"":""4"",""4"":""9""}",2.0,"Option 2 is correct. To find the unit digit of the product of several numbers, we only need to multiply their unit digits. The unit digits in the expression are 3 (from 123), 6 (from 456), and 9 (from 789). First, we find the unit digit of the product of the first two unit digits: 3 × 6 = 18. The unit digit of this result is 8. Then, we multiply this new unit digit (8) by the unit digit of the next number (9): 8 × 9 = 72. The unit digit of 72 is 2. Therefore, the unit digit of the entire expression is 2.
+
+Option 1 is incorrect because 8 is the unit digit of the product of only the first two numbers (123 × 456), but it neglects the third number.
+
+Option 3 is incorrect because 4 is the unit digit from multiplying the last two unit digits (6 × 9 = 54), which incorrectly ignores the first number's unit digit.
+
+Option 4 is incorrect because 9 is simply the unit digit of the last number in the expression (789), not the unit digit of the final product.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Unit_Digits_1766390024832.png?
+8.0,Numbers,Unit Digits,medium,What is the unit digit of the final result of the expression shown below?,Unit Digits_1766390057458.png,"{""1"":""4"",""2"":""8"",""3"":""2"",""4"":""0""}",1.0,"The correct option is 1.
+
+To find the unit digit of the expression, we must find the unit digit of each term and then perform the operations. First, consider the term (137)^43. The unit digit is determined by the unit digit of 7^43. The pattern of unit digits for powers of 7 is 7, 9, 3, 1, which repeats every 4 powers. To find the position in this cycle, we find the remainder of 43 divided by 4, which is 3. The third unit digit in the cycle is 3. Second, consider the term (264)^58. The unit digit is determined by 4^58. The pattern of unit digits for powers of 4 is 4, 6, which repeats every 2 powers. Since the exponent 58 is even, the unit digit is 6. Third, consider the term (345)^76. Any positive integer power of a number ending in 5 will have a unit digit of 5. Now, we combine the unit digits: (unit digit of the first term) + (unit digit of the second term) - (unit digit of the third term). This corresponds to 3 + 6 - 5. The sum 3 + 6 is 9. Then, 9 - 5 gives 4. Therefore, the unit digit of the entire expression is 4.
+
+Option 2 is incorrect. An answer of 8 would be reached if the unit digit for (137)^43 was mistakenly taken as 7 (corresponding to a remainder of 1 when dividing 43 by 4), leading to 7 + 6 - 5 = 8. Option 3 is incorrect. An answer of 2 would be reached if the unit digit of (264)^58 was incorrectly assumed to be 4 (confusing the rule for even and odd powers), leading to 3 + 4 - 5 = 2. Option 4 is incorrect. An answer of 0 would result from incorrectly calculating the unit digit of (137)^43 as 9 (corresponding to a remainder of 2), which gives 9 + 6 - 5 = 10, for a unit digit of 0.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Unit_Digits_1766390057458.png?
+9.0,Numbers,Unit Digits,hard,What is the unit digit of the expression for X shown in the image?,Unit Digits_1766390095652.png,"{""1"":""6"",""2"":""2"",""3"":""8"",""4"":""0""}",3.0,"To find the unit digit of X, we need to find the unit digit of each term separately and then add them.
+
+Term 1: (137)^(41!)
+The unit digit is determined by 7^(41!). The cyclicity of the unit digits of powers of 7 is 4 (7, 9, 3, 1). We need to find the remainder of the exponent 41! when divided by 4. Since 41 is greater than or equal to 4, 41! contains 4 as a factor, which means 41! is perfectly divisible by 4. The remainder is 0. When the remainder is 0, we take the 4th term in the cycle, which is 1. So, the unit digit of (137)^(41!) is 1.
+
+Term 2: (248)^(97^35)
+The unit digit is determined by 8^(97^35). The cyclicity of the unit digits of powers of 8 is 4 (8, 4, 2, 6). We need to find the remainder of the exponent 97^35 when divided by 4. First, find the remainder of the base of the exponent, 97, when divided by 4. 97 = (24 * 4) + 1, so 97 leaves a remainder of 1. Therefore, 97^35 will have the same remainder as 1^35 when divided by 4, which is 1. The exponent is of the form 4k + 1. We take the 1st term in the cycle of 8, which is 8. So, the unit digit of (248)^(97^35) is 8.
+
+Term 3: (359)^(123! + 1)
+The unit digit is determined by 9^(123! + 1). The cyclicity of the unit digits of powers of 9 is 2 (9 for odd powers, 1 for even powers). We need to determine if the exponent 123! + 1 is odd or even. Since 123 is greater than 1, 123! is a product of many integers including 2, so it is an even number. Adding 1 to an even number (123!) results in an odd number. Thus, the exponent is odd. For an odd exponent, the unit digit of a power of 9 is 9. So, the unit digit of (359)^(123! + 1) is 9.
+
+Finally, we add the unit digits of the three terms: 1 + 8 + 9 = 18. The unit digit of the sum is the unit digit of 18, which is 8.
+
+Option 1 is incorrect. A unit digit of 6 would be obtained if the second term's unit digit was incorrectly calculated as 6 (by assuming the exponent is a multiple of 4), leading to 1 + 6 + 9 = 16.
+Option 2 is incorrect. A unit digit of 2 would be obtained if the second term's unit digit was incorrectly calculated as 2 (by assuming the exponent gives a remainder of 3 when divided by 4), leading to 1 + 2 + 9 = 12.
+Option 4 is incorrect. A unit digit of 0 would be obtained if the third term's unit digit was incorrectly calculated as 1 (by assuming the exponent is even), leading to 1 + 8 + 1 = 10.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Unit_Digits_1766390095652.png?
+10.0,Numbers,Remainder Theorem,easy,What is the remainder when the number 125 is divided by 8?,no image,"{""1"":""5"",""2"":""15"",""3"":""3"",""4"":""0""}",1.0,"The correct option is 1.
+
+To find the remainder when 125 is divided by 8, we can use the division algorithm which states that Dividend = (Divisor × Quotient) + Remainder. The largest multiple of 8 that is less than or equal to 125 is 8 × 15 = 120. Subtracting this from 125 gives 125 - 120 = 5. So, 125 = (8 × 15) + 5. The remainder is 5.
+
+Option 2 is incorrect because 15 is the quotient in this division, not the remainder. Option 3 is an incorrect calculation. Option 4 is incorrect because a remainder of 0 would mean 125 is perfectly divisible by 8, which is not the case.",
+11.0,Numbers,Remainder Theorem,medium,"When a positive integer is divided by a certain divisor, the remainder is 46. When twice that same integer is divided by the same divisor, the remainder is 37. What is the value of the divisor?",no image,"{""1"":""55"",""2"":""65"",""3"":""11"",""4"":""83""}",1.0,"Let the positive integer be N and the divisor be D. According to the remainder theorem, we can express the given information as two equations.
+From the first condition: N = D * q1 + 46, where q1 is the quotient. This implies that the divisor D must be greater than the remainder, so D > 46.
+From the second condition: 2N = D * q2 + 37, where q2 is the quotient. This implies D > 37. Combining both conditions gives D > 46.
+
+Now, substitute the expression for N from the first equation into the second equation:
+2 * (D * q1 + 46) = D * q2 + 37
+2*D*q1 + 92 = D*q2 + 37
+Rearranging the terms to isolate the constants: 92 - 37 = D*q2 - 2*D*q1
+55 = D * (q2 - 2*q1)
+
+This equation shows that 55 is a multiple of D, which means D must be a factor of 55. The factors of 55 are 1, 5, 11, and 55. Based on our earlier condition that D > 46, the only possible value for the divisor D is 55.
+
+Option 2, 65, is incorrect. It may arise from a calculation error, for instance, 92 - 37 = 65. If D were a factor of 65 and greater than 46, D would be 65, but this is based on an incorrect subtraction.
+Option 3, 11, is incorrect. While 11 is a factor of 55, it violates the fundamental rule of division that the divisor must be greater than the remainder (D > 46).
+Option 4, 83, is incorrect. This value might be obtained by incorrectly adding the two remainders (46 + 37 = 83), which is not a valid operation for solving this problem.",
+12.0,Numbers,Remainder Theorem,hard,"A polynomial P(x) leaves a remainder of `x + 2` when divided by `(x - 3)^2` and a remainder of `3x - 2` when divided by `(x - 1)^2`. If `R(x)` is the remainder when `P(x)` is divided by the expression shown in the image, what is the value of `R(7)`?",Remainder Theorem_1766390216246.png,"{""1"":""1"",""2"":""27"",""3"":""13"",""4"":""4""}",1.0,"Let the remainder when P(x) is divided by (x - 3)^2(x - 1) be R(x). Since the divisor is a polynomial of degree 3, the remainder R(x) must be a polynomial of at most degree 2. Let R(x) = ax^2 + bx + c. So, P(x) = (x - 3)^2(x - 1)Q(x) + ax^2 + bx + c for some polynomial Q(x).
+
+We are given that when P(x) is divided by (x - 1)^2, the remainder is 3x - 2. By the Remainder Theorem, P(1) = 3(1) - 2 = 1. From our expression for P(x), P(1) = (1-3)^2(1-1)Q(1) + a(1)^2 + b(1) + c = a + b + c. Thus, we have our first equation: a + b + c = 1. (Eq. 1)
+
+We are also given that when P(x) is divided by (x - 3)^2, the remainder is x + 2. Let's analyze our expression for P(x) again: P(x) = (x - 3)^2(x - 1)Q(x) + ax^2 + bx + c. When we divide this by (x - 3)^2, the term (x - 3)^2(x - 1)Q(x) is perfectly divisible and leaves no remainder. Therefore, the remainder of P(x) divided by (x - 3)^2 is the same as the remainder of (ax^2 + bx + c) divided by (x - 3)^2. Let's perform this division. The divisor is (x - 3)^2 = x^2 - 6x + 9. We can write ax^2 + bx + c = a(x^2 - 6x + 9) + (b + 6a)x + (c - 9a). The remainder is (b + 6a)x + (c - 9a). We are given that this remainder is x + 2. By comparing the coefficients of x and the constant terms, we get two more equations: b + 6a = 1 (Eq. 2) and c - 9a = 2 (Eq. 3).
+
+Now we solve the system of three linear equations. From (Eq. 2), b = 1 - 6a. From (Eq. 3), c = 2 + 9a. Substituting these into (Eq. 1): a + (1 - 6a) + (2 + 9a) = 1. Simplifying, we get 4a + 3 = 1, which gives 4a = -2, so a = -1/2. Now we find b and c: b = 1 - 6(-1/2) = 1 + 3 = 4. c = 2 + 9(-1/2) = 2 - 9/2 = -5/2. The remainder polynomial is R(x) = (-1/2)x^2 + 4x - 5/2.
+
+The question asks for the value of R(7). R(7) = (-1/2)(7)^2 + 4(7) - 5/2 = -49/2 + 28 - 5/2 = -54/2 + 28 = -27 + 28 = 1.
+
+Option 2 is incorrect. It would be the result of R(7) if one mistakenly swapped the given remainders, leading to R(x) = (1/2)x^2 + 5/2. Option 3 is incorrect. It is the result of wrongly assuming the remainder is linear, R(x) = 2x - 1, which gives R(7)=13. This is a flawed assumption as the divisor is cubic. Option 4 is incorrect. It arises from a calculation error, such as setting b+6a=2 instead of b+6a=1, leading to a different R(x) and R(7)=4.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Remainder_Theorem_1766390216246.png?
+13.0,Numbers,HCF and LCM,easy,"Two bells toll at intervals of 15 minutes and 25 minutes, respectively. If they toll together at 9:00 AM, at what time will they next toll together?",no image,"{""1"":""9:40 AM"",""2"":""10:00 AM"",""3"":""10:15 AM"",""4"":""11:15 AM""}",3.0,"Option 3 is correct. To find when the bells will toll together again, we need to find the Least Common Multiple (LCM) of their tolling intervals, which are 15 and 25 minutes. The multiples of 15 are 15, 30, 45, 60, 75, 90, ... The multiples of 25 are 25, 50, 75, 100, ... The smallest number that appears in both lists (the LCM) is 75. Therefore, the bells will toll together again after 75 minutes. 75 minutes is equal to 1 hour and 15 minutes. Adding this to the starting time of 9:00 AM gives 10:15 AM.
+
+Option 1 is incorrect because 40 is not a multiple of 15 or 25. Option 2 is incorrect because 60 minutes (10:00 AM) is a multiple of 15 but not of 25. Option 4 is incorrect because 135 minutes (11:15 AM) is a common multiple, but it is not the *least* common multiple.",
+14.0,Numbers,HCF and LCM,medium,"Two numbers, P and Q, are defined by their prime factorizations as shown in the image. What is the difference between the Least Common Multiple (LCM) and the Highest Common Factor (HCF) of P and Q?",HCF and LCM_1766390276611.png,"{""1"":""22644"",""2"":""22680"",""3"":""22716"",""4"":""36""}",1.0,"The correct option is 1.
+
+To find the HCF of P and Q, we take the lowest power of each common prime factor. The common prime factors are 2 and 3. The lowest power of 2 is 2² and the lowest power of 3 is 3². Therefore, HCF(P, Q) = 2² × 3² = 4 × 9 = 36.
+
+To find the LCM of P and Q, we take the highest power of all prime factors present in either number. The prime factors are 2, 3, 5, and 7. The highest power of 2 is 2³, the highest power of 3 is 34, the highest power of 5 is 5¹, and the highest power of 7 is 7¹. Therefore, LCM(P, Q) = 2³ × 34 × 5¹ × 7¹ = 8 × 81 × 5 × 7 = 22680.
+
+The difference between the LCM and HCF is 22680 - 36 = 22644.
+
+Option 2 is incorrect because 22680 is the LCM of the two numbers, not the difference between the LCM and HCF. Option 3 is incorrect because 22716 is the sum of the LCM and HCF (22680 + 36), not the difference. Option 4 is incorrect because 36 is the HCF of the two numbers, not the difference.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/HCF_and_LCM_1766390276611.png?
+15.0,Numbers,HCF and LCM,hard,"Let A, B, and C be three natural numbers. The HCF of these three numbers is H. It is given that A = 2H and B = 3H. The product of the HCF and LCM of A, B, and C is 3024. What is the smallest possible value for the third number, C?",no image,"{""1"":""168"",""2"":""336"",""3"":""112"",""4"":""28""}",1.0,"Let the three numbers be A, B, and C. Their HCF is H and their LCM is L. We are given A = 2H and B = 3H. Since H is the HCF of all three numbers, C must also be a multiple of H. Let C = kH for some natural number k.
+
+The three numbers are 2H, 3H, and kH. The HCF of these numbers is H * HCF(2, 3, k). Since we are given that the HCF is H, it implies that HCF(2, 3, k) = 1. This condition holds true for any integer k, as HCF(2, 3) is already 1.
+
+The LCM of these numbers is L = H * LCM(2, 3, k) = H * LCM(6, k).
+
+We are given the product H * L = 3024. Substituting the expression for L, we get:
+H * [H * LCM(6, k)] = 3024
+H² * LCM(6, k) = 3024
+
+First, we find the prime factorization of 3024: 3024 = 24 * 3³ * 7.
+Since H² is a factor of 3024, H² must be a perfect square that divides 3024. The perfect square factors of 3024 are 1, 4, 9, 36, and 144. We test each possible value of H to find the smallest possible value for C = kH.
+
+Case 1: H² = 144 => H = 12.
+144 * LCM(6, k) = 3024 => LCM(6, k) = 21. The LCM of 6 and any other number must be a multiple of 6 (and therefore even), but 21 is odd. So, this case is impossible.
+
+Case 2: H² = 36 => H = 6.
+36 * LCM(6, k) = 3024 => LCM(6, k) = 84. (84 = 2² * 3 * 7). For LCM(6, k) to be 84, k must provide the factors 2² and 7. The smallest such k is LCM(4, 7) = 28. Then C = kH = 28 * 6 = 168.
+
+Case 3: H² = 9 => H = 3.
+9 * LCM(6, k) = 3024 => LCM(6, k) = 336. (336 = 24 * 3 * 7). For LCM(6, k) to be 336, k must provide the factors 24 and 7. The smallest such k is LCM(16, 7) = 112. Then C = kH = 112 * 3 = 336.
+
+Case 4: H² = 4 => H = 2.
+4 * LCM(6, k) = 3024 => LCM(6, k) = 756. (756 = 2² * 3³ * 7). For LCM(6, k) to be 756, k must provide 2², 3³, and 7. Smallest k = LCM(4, 27, 7) = 756. Then C = kH = 756 * 2 = 1512.
+
+Case 5: H² = 1 => H = 1.
+1 * LCM(6, k) = 3024. (3024 = 24 * 3³ * 7). For LCM(6, k) to be 3024, k must provide 24, 3³, and 7. Smallest k = LCM(16, 27, 7) = 3024. Then C = kH = 3024 * 1 = 3024.
+
+Comparing the possible values for C (168, 336, 1512, 3024), the smallest is 168. Therefore, option 1 is correct.
+
+Option 2, 336, is a possible value for C but arises when H=3, and it is not the smallest possible value.
+Option 3, 112, is the value of k for the case H=3, not the value of C (which is kH).
+Option 4, 28, is the value of k for the case H=6, which gives the minimal C. This is a common mistake where the value of k is reported instead of C = kH.",
+16.0,Numbers,Factorial,easy,What is the value of the expression shown in the image?,Factorial_1766391312914.png,"{""1"":""120"",""2"":""720"",""3"":""21"",""4"":""360""}",2.0,"The correct answer is 720.
+
+The expression shown is 6!, which is read as ""6 factorial"". The factorial of a non-negative integer 'n', denoted by n!, is the product of all positive integers less than or equal to n. Therefore, 6! is calculated as 6 × 5 × 4 × 3 × 2 × 1. Performing the multiplication: 6 × 5 = 30, 30 × 4 = 120, 120 × 3 = 360, 360 × 2 = 720, and 720 × 1 = 720.
+
+Option 1, 120, is incorrect because it is the value of 5! (5 × 4 × 3 × 2 × 1). Option 3, 21, is incorrect as it is the sum of the integers from 1 to 6 (1+2+3+4+5+6), not their product. Option 4, 360, is incorrect; it is half the value of 720 and may result from a calculation error, such as omitting the multiplication by 2.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Factorial_1766391312914.png?
+17.0,Numbers,Factorial,medium,"If the equation shown is true, find the value of x.",Factorial_1766391385145.png,"{""1"":""90"",""2"":""10"",""3"":""1"",""4"":""100""}",4.0,"Option 4 is the correct answer. To solve the given equation, we need to find a common denominator for the terms on the left-hand side. The term 1/9! can be rewritten using the factorial property n! = n * (n-1)!. So, 9! = 9 * 8!.
+
+The equation becomes 1/8! + 1/(9*8!) = x/10!. We can take 1/8! as a common factor on the left side: (1/8!) * (1 + 1/9) = x/10!. Simplifying the expression in the parenthesis gives (1/8!) * (10/9) = x/10!. This is equivalent to 10/(9*8!) = x/10!, which simplifies to 10/9! = x/10!.
+
+To find x, we can rearrange the equation: x = 10 * (10!/9!). Since 10! = 10 * 9!, the fraction 10!/9! simplifies to 10. Therefore, x = 10 * 10, which equals 100.
+
+Option 1 is incorrect. This value would be obtained if one incorrectly assumed the equation was 1/8! = x/10!, which would lead to x = 10!/8! = 10 * 9 = 90. This ignores the 1/9! term.
+
+Option 2 is incorrect. This error likely arises from simplifying 10/9! = x/10! to x=10 by ignoring the different denominators, or by incorrectly solving for a simplified equation like x/10! = 1/9!, which gives x = 10!/9! = 10. This ignores the 1/8! term.
+
+Option 3 is incorrect. This might result from an algebraic mistake after reaching 10/9! = x/10!. If one incorrectly cross-multiplies to get 10 * 9! = x * 10!, it would lead to x = (10 * 9!) / (10 * 9!) = 1.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Factorial_1766391385145.png?
+18.0,Numbers,Factorial,hard,"Let the function F(n) be defined by the summation shown in the image, where n is a positive integer. What is the value of F(14)?",Factorial_1766391420007.png,"{""1"":""(15! - 1) / 15!"",""2"":""(14! - 1) / 14!"",""3"":""14 / 15!"",""4"":""1""}",1.0,"The correct option is 1.
+
+The core of this problem is to simplify the general term of the summation, k / (k+1)!. We can rewrite the numerator k as (k+1) - 1. This allows us to split the fraction. The term becomes ((k+1) - 1) / (k+1)! which is equal to (k+1)/(k+1)! - 1/(k+1)!. Using the property that (k+1)! = (k+1) * k!, the first part simplifies to 1/k!. So, the general term simplifies to 1/k! - 1/(k+1)!.
+
+Now, the summation becomes a telescoping series: F(n) = sum from k=1 to n of [1/k! - 1/(k+1)!]. Let's write out the first few and the last terms: F(n) = (1/1! - 1/2!) + (1/2! - 1/3!) + (1/3! - 1/4!) + ... + (1/n! - 1/(n+1)!). The -1/2! from the first term cancels with the 1/2! from the second term, and this pattern continues. All intermediate terms cancel out, leaving only the very first term (1/1!) and the very last term (-1/(n+1)!).
+
+Therefore, the sum simplifies to F(n) = 1/1! - 1/(n+1)! = 1 - 1/(n+1)!. For n=14, this gives F(14) = 1 - 1/(14+1)! = 1 - 1/15!. To write this as a single fraction, we get (15!/15!) - (1/15!) = (15! - 1) / 15!.
+
+Option 2, (14! - 1) / 14!, is incorrect. This would be the result if the sum simplified to 1 - 1/n!, which is a common off-by-one error in evaluating the telescoping series. Option 3, 14 / 15!, is incorrect and results from naively evaluating only the last term of the sum for k=14. Option 4, 1, is incorrect. This would be the value if the last term -1/(n+1)! was mistakenly ignored or cancelled, or by confusing the finite sum with its limit as n approaches infinity.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Factorial_1766391420007.png?
+19.0,Data Interpretation,Bar Graph,easy,The bar graph shows the number of books sold by a store from Monday to Friday. How many books were sold on Thursday?,Bar Graph_1766391459295.png,"{""1"":""60"",""2"":""50"",""3"":""80"",""4"":""70""}",3.0,"To solve the question, we need to read the value corresponding to 'Thursday' from the bar graph. Find the bar labeled 'Thu' on the horizontal axis. Trace this bar up to its top and then read the corresponding value on the vertical axis. The top of the bar for Thursday aligns with the 80 mark on the 'Books Sold' axis. Therefore, 80 books were sold on Thursday.
+
+Option 1 is incorrect because 60 books were sold on Tuesday. Option 2 is incorrect as 50 books were sold on Wednesday. Option 4 is incorrect because 70 books were sold on Friday.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Bar_Graph_1766391459295.png?
+20.0,Data Interpretation,Bar Graph,medium,"The bar graph shows the number of students enrolled in three different streams in a college for the years 2020 and 2021. For the year 2022, it is projected that the enrollment in the Commerce stream will be 20% higher than in 2021, and the enrollment in the Science stream will be 15% lower than in 2020. What is the projected difference between the number of students in the Commerce and Science streams in 2022?",Bar Graph_1766391512387.png,"{""1"":""188"",""2"":""205"",""3"":""260"",""4"":""108""}",1.0,"To solve this problem, we need to calculate the projected number of students for the Commerce and Science streams in 2022 based on the data from the graph.
+
+First, find the number of Commerce students in 2021 from the graph, which is 440. The projection for 2022 is a 20% increase. So, the projected number of Commerce students in 2022 is 440 * (1 + 20/100) = 440 * 1.20 = 528.
+
+Next, find the number of Science students in 2020 from the graph, which is 400. The projection for 2022 is a 15% decrease. So, the projected number of Science students in 2022 is 400 * (1 - 15/100) = 400 * 0.85 = 340.
+
+Finally, calculate the difference between the projected numbers for these two streams in 2022: 528 (Commerce) - 340 (Science) = 188.
+
+Option 2 is incorrect because it mistakenly uses the Science enrollment from 2021 as the base for the calculation (380 * 0.85 = 323), leading to a difference of 528 - 323 = 205. Option 3 is incorrect as it mistakenly uses the Commerce enrollment from 2020 as the base (500 * 1.20 = 600), resulting in a difference of 600 - 340 = 260. Option 4 is incorrect because it reverses the percentage changes, calculating a 15% increase for Science and a 20% decrease for Commerce.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Bar_Graph_1766391512387.png?
+21.0,Data Interpretation,Bar Graph,hard,The bar graph displays the Projected Budget and Actual Expenditure (in millions of USD) for five departments of a company. A new policy dictates that the total surplus from all departments that underspent (Projected Budget > Actual Expenditure) will be collected. This collected amount is then distributed equally among all departments that overspent (Actual Expenditure > Projected Budget). What is the total combined deficit remaining for the overspending departments after this distribution is applied?,Bar Graph_1766391601774.png,"{""1"":""50 million USD"",""2"":""21 million USD"",""3"":""29 million USD"",""4"":""43 million USD""}",3.0,"1. Identify departments that underspent and calculate the total surplus.
+- Department P: Projected = 80, Actual = 71. Surplus = 80 - 71 = 9 million.
+- Department S: Projected = 60, Actual = 48. Surplus = 60 - 48 = 12 million.
+- Total Surplus collected = 9 + 12 = 21 million USD.
+
+2. Identify departments that overspent and calculate their initial total deficit.
+- Department Q: Projected = 50, Actual = 75. Deficit = 75 - 50 = 25 million.
+- Department R: Projected = 90, Actual = 100. Deficit = 100 - 90 = 10 million.
+- Department T: Projected = 70, Actual = 85. Deficit = 85 - 70 = 15 million.
+- Total Initial Deficit = 25 + 10 + 15 = 50 million USD.
+
+3. Distribute the total surplus among the overspending departments.
+- Number of overspending departments = 3 (Q, R, T).
+- Amount distributed to each overspending department = Total Surplus / 3 = 21 / 3 = 7 million USD.
+
+4. Calculate the remaining deficit for each overspending department and sum them up.
+- Department Q's remaining deficit = Initial Deficit - Amount Received = 25 - 7 = 18 million.
+- Department R's remaining deficit = Initial Deficit - Amount Received = 10 - 7 = 3 million.
+- Department T's remaining deficit = Initial Deficit - Amount Received = 15 - 7 = 8 million.
+- Total Remaining Deficit = 18 + 3 + 8 = 29 million USD.
+
+Therefore, the correct answer is 29 million USD.
+
+- Option 1 (50 million USD) is incorrect because it represents the total initial deficit before the surplus is redistributed.
+- Option 2 (21 million USD) is incorrect because it is the total surplus collected from the underspending departments, not the final deficit.
+- Option 4 (43 million USD) is incorrect. This might result from a calculation error, such as subtracting the per-department distribution (7 million) from the total initial deficit (50 million), which is logically flawed.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Bar_Graph_1766391601774.png?
+22.0,Data Interpretation,Pie Chart,easy,The given pie chart illustrates the percentage distribution of favorite food choices among a group of 400 students. How many students chose 'Burger' as their favorite food?,Pie Chart_1766391664131.png,"{""1"":""120"",""2"":""180"",""3"":""60"",""4"":""30""}",1.0,"To find the number of students who chose 'Burger', we need to calculate the percentage for 'Burger' from the total number of students.
+
+From the pie chart, the percentage of students who chose 'Burger' is 30%.
+The total number of students is 400.
+Number of students who chose 'Burger' = 30% of 400 = (30 / 100) * 400 = 120.
+
+Option 2 (180) is incorrect as it represents the number of students who chose Pizza (45% of 400). Option 3 (60) is incorrect as it represents the number of students who chose Pasta (15% of 400). Option 4 (30) is incorrect as it is the percentage value, not the actual number of students.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Pie_Chart_1766391664131.png?
+23.0,Data Interpretation,Pie Chart,medium,"The given pie chart illustrates the percentage distribution of 12,000 students across five different academic streams in a university. In the Science stream, 50% of the students are female. In the Medical stream, the number of female students is 25% of the number of male students. What is the total number of male students in the Science and Medical streams combined?",Pie Chart_1766391764930.png,"{""1"":""2160"",""2"":""2100"",""3"":""1440"",""4"":""2400""}",1.0,"To solve this problem, we need to calculate the number of male students in the Science and Medical streams separately and then add them.
+
+First, let's find the number of students in the Science stream. According to the pie chart, Science students constitute 20% of the total.
+Total Science students = 20% of 12,000 = 0.20 * 12,000 = 2,400.
+The question states that 50% of Science students are female, which means the remaining 50% must be male.
+Male students in Science = 50% of 2,400 = 0.50 * 2,400 = 1,200.
+
+Next, let's find the number of students in the Medical stream. The pie chart shows this is 10% of the total.
+Total Medical students = 10% of 12,000 = 0.10 * 12,000 = 1,200.
+The number of female students (F) is 25% of the number of male students (M), so F = 0.25 * M.
+The total number of students in the stream is the sum of males and females: M + F = 1,200.
+Substituting F, we get: M + (0.25 * M) = 1,200, which simplifies to 1.25 * M = 1,200.
+Solving for M: M = 1,200 / 1.25 = 960. So, there are 960 male students in the Medical stream.
+
+Finally, the total number of male students in both streams combined is the sum of the male students from each stream.
+Total male students = 1,200 (from Science) + 960 (from Medical) = 2,160.
+
+Option 2 (2100) is incorrect. It results from incorrectly calculating females as 25% of the total Medical students (25% of 1200 = 300 females, so 900 males), leading to a total of 1200 + 900 = 2100.
+Option 3 (1440) is incorrect. This happens if the relationship in the Medical stream is reversed (males being 25% of females), leading to 240 males and a total of 1200 + 240 = 1440.
+Option 4 (2400) is incorrect. This comes from adding the male students from Science (1200) to the total students from Medical (1200), i.e., 1200 + 1200 = 2400.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Pie_Chart_1766391764930.png?
+24.0,Data Interpretation,Pie Chart,hard,"The pie charts below show the percentage distribution of employees across five departments (A, B, C, D, and E) of a company in two different years. From Year 1 to Year 2, the total number of employees in the company increased by 20%. During this period, the number of employees in Department C increased by 420. What was the difference between the number of employees in Department D in Year 1 and the number of employees in Department A in Year 2?",Pie Chart_1766391840694.png,"{""1"":""168"",""2"":""252"",""3"":""420"",""4"":""960""}",1.0,"Let the total number of employees in Year 1 be T1 and in Year 2 be T2.
+
+According to the problem, the total number of employees increased by 20% from Year 1 to Year 2. This gives us our first equation:
+T2 = T1 + (20/100)*T1 = 1.2 * T1.
+
+The second condition states that the number of employees in Department C increased by 420. From the pie charts, the percentage of employees in Department C is 15% in Year 1 and 25% in Year 2. This gives us our second equation:
+(25% of T2) - (15% of T1) = 420
+0.25 * T2 - 0.15 * T1 = 420.
+
+Now, we solve this system of two equations. Substitute T2 = 1.2 * T1 into the second equation:
+0.25 * (1.2 * T1) - 0.15 * T1 = 420
+0.30 * T1 - 0.15 * T1 = 420
+0.15 * T1 = 420
+T1 = 420 / 0.15 = 2800.
+So, the total employees in Year 1 were 2800.
+
+Now we can find the total employees in Year 2:
+T2 = 1.2 * T1 = 1.2 * 2800 = 3360.
+
+The question asks for the difference between the number of employees in Department D in Year 1 and Department A in Year 2.
+Number of employees in Department D in Year 1 = 30% of T1 = 0.30 * 2800 = 840.
+Number of employees in Department A in Year 2 = 20% of T2 = 0.20 * 3360 = 672.
+
+The required difference is 840 - 672 = 168.
+
+Option 2 (252) is incorrect. It arises if one misinterprets the condition as comparing the number of employees in Department C in Year 2 with Department B in Year 1, leading to T1=4200 and T2=5040.
+
+Option 3 (420) is incorrect. This value is obtained if one incorrectly assumes the total number of employees is the same in both years (T1=T2). In that case, (0.25T - 0.15T) = 420, so 0.1T = 420 and T=4200. The requested difference would then be (0.30*4200) - (0.20*4200) = 0.10 * 4200 = 420.
+
+Option 4 (960) is incorrect. This results from incorrectly reversing the percentage increase relationship, assuming T1 = 1.2 * T2. This would lead to T2=6000 and T1=7200, and a final difference of 960.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Pie_Chart_1766391840694.png?
+25.0,Data Interpretation,Line Graph,easy,Refer to the line graph showing the monthly car sales of a dealership. In which month were exactly 60 cars sold?,Line Graph_1766391886536.png,"{""1"":""January"",""2"":""February"",""3"":""April"",""4"":""June""}",3.0,"To find the answer, locate the value 60 on the vertical axis (Y-axis), which represents the number of cars sold. Trace a horizontal line from this point to the right until it intersects with a data point on the graph. From that data point, trace a vertical line down to the horizontal axis (X-axis) to identify the corresponding month. This process shows that 60 cars were sold in April. The other options are incorrect: 40 cars were sold in January, 55 in February, and 75 in June.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Line_Graph_1766391886536.png?
+26.0,Data Interpretation,Line Graph,medium,"Refer to the line graph showing the annual production of two car models. What is the difference (in thousands) between the total production of Model A from 2016 to 2018 inclusive, and the total production of Model B from 2017 to 2019 inclusive?",Line Graph_1766391996658.png,"{""1"":""15"",""2"":""5"",""3"":""10"",""4"":""265""}",1.0,"To solve this problem, we need to calculate the total production for each model over the specified periods and then find the difference between these totals.
+
+First, calculate the total production of Model A from 2016 to 2018. From the graph, the production values for Model A are: 40 (in 2016), 35 (in 2017), and 50 (in 2018). The sum is 40 + 35 + 50 = 125 thousand units.
+
+Next, calculate the total production of Model B from 2017 to 2019. From the graph, the production values for Model B are: 45 (in 2017), 40 (in 2018), and 55 (in 2019). The sum is 45 + 40 + 55 = 140 thousand units.
+
+Finally, find the difference between the two totals: 140 - 125 = 15 thousand units. Therefore, the correct answer is 15.
+
+Option 2 (5) is incorrect. This result might be obtained by misreading the production of Model A in 2017 as 45 instead of 35, which would lead to a total of 135 for Model A and a difference of |135 - 140| = 5.
+
+Option 3 (10) is incorrect. This could be the result of misreading the production of Model B in 2019 as 50 instead of 55. This would make the total for Model B equal to 45 + 40 + 50 = 135, and the difference would be |125 - 135| = 10.
+
+Option 4 (265) is incorrect. This value is the sum of the two totals (125 + 140 = 265), not the difference.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Line_Graph_1766391996658.png?
+27.0,Data Interpretation,Line Graph,hard,"The line graph shows the Revenue and Expenditure of two companies, A and B, from 2018 to 2023. If 'Profit' is defined as (Revenue - Expenditure), in which year was the absolute difference between the Profit as a percentage of Revenue for Company A and the Profit as a percentage of Revenue for Company B the second highest?",Line Graph_1766392074057.png,"{""1"":""2020"",""2"":""2021"",""3"":""2022"",""4"":""2019""}",3.0,"To solve this question, we must first calculate the 'Profit as a percentage of Revenue' for each company for every year. The formula for this is ((Revenue - Expenditure) / Revenue) * 100. Let's call this the 'Profit Percentage'.
+
+For Company A:
+- 2018: Profit = 40-30 = 10. Profit % = (10/40)*100 = 25.00%
+- 2019: Profit = 55-40 = 15. Profit % = (15/55)*100 ˜ 27.27%
+- 2020: Profit = 50-45 = 5. Profit % = (5/50)*100 = 10.00%
+- 2021: Profit = 70-50 = 20. Profit % = (20/70)*100 ˜ 28.57%
+- 2022: Profit = 80-65 = 15. Profit % = (15/80)*100 = 18.75%
+- 2023: Profit = 95-70 = 25. Profit % = (25/95)*100 ˜ 26.32%
+
+For Company B:
+- 2018: Profit = 35-25 = 10. Profit % = (10/35)*100 ˜ 28.57%
+- 2019: Profit = 45-35 = 10. Profit % = (10/45)*100 ˜ 22.22%
+- 2020: Profit = 60-40 = 20. Profit % = (20/60)*100 ˜ 33.33%
+- 2021: Profit = 65-55 = 10. Profit % = (10/65)*100 ˜ 15.38%
+- 2022: Profit = 75-50 = 25. Profit % = (25/75)*100 ˜ 33.33%
+- 2023: Profit = 85-60 = 25. Profit % = (25/85)*100 ˜ 29.41%
+
+Next, we find the absolute difference between these percentages for each year:
+- 2018: |25.00% - 28.57%| = 3.57%
+- 2019: |27.27% - 22.22%| = 5.05%
+- 2020: |10.00% - 33.33%| = 23.33%
+- 2021: |28.57% - 15.38%| = 13.19%
+- 2022: |18.75% - 33.33%| = 14.58%
+- 2023: |26.32% - 29.41%| = 3.09%
+
+Ranking these differences from highest to lowest: 
+1. 2020 (23.33%)
+2. 2022 (14.58%)
+3. 2021 (13.19%)
+
+The second highest absolute difference occurred in 2022. Therefore, option 3 is the correct answer.
+Option 1 is incorrect because 2020 had the highest difference, not the second highest. Option 2 is incorrect because 2021 had the third highest difference. Option 4 is incorrect because the difference in 2019 was relatively low.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Line_Graph_1766392074057.png?
+28.0,Data Interpretation,Histogram,easy,The provided histogram illustrates the time taken by a group of athletes to complete a 100-meter race. How many athletes completed the race in the time interval of 12 to 14 seconds?,Histogram_1766392120503.png,"{""1"":""10"",""2"":""15"",""3"":""14"",""4"":""5""}",2.0,"The correct option is 2.
+
+The histogram displays class intervals (time in seconds) on the x-axis and the frequency (number of athletes) on the y-axis. To find the number of athletes who completed the race between 12 and 14 seconds, we need to find the bar that corresponds to the '12-14' interval on the x-axis. The height of this bar represents the frequency. Looking at the graph, the height of the bar for the 12-14 second interval reaches the value 15 on the y-axis. Therefore, 15 athletes completed the race in that time.
+
+Option 1 (10) is incorrect because it represents the number of athletes in the 14-16 second interval.
+Option 3 (14) is incorrect because it is the upper limit of the time interval on the x-axis, not the number of athletes on the y-axis.
+Option 4 (5) is incorrect because it represents the number of athletes in the 10-12 second interval.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Histogram_1766392120503.png?
+29.0,Data Interpretation,Histogram,medium,The histogram provided shows the distribution of scores obtained by students in a mathematics test. How many students scored 20 or more marks but less than 50 marks?,Histogram_1766392203298.png,"{""1"":""58"",""2"":""43"",""3"":""40"",""4"":""76""}",1.0,"To find the total number of students who scored 20 or more but less than 50, we need to sum the frequencies of the class intervals that fall within this range. The relevant intervals are '20-30', '30-40', and '40-50'.
+
+From the histogram, the frequency for the '20-30' score range is 18.
+The frequency for the '30-40' score range is 25.
+The frequency for the '40-50' score range is 15.
+
+Adding these frequencies together gives the total number of students: 18 + 25 + 15 = 58. Therefore, 58 students scored 20 or more but less than 50 marks.
+
+Option 2 (43) is incorrect because it is the sum of only the '20-30' and '30-40' intervals (18 + 25), omitting the '40-50' interval. Option 3 (40) is incorrect as it is the sum of the '30-40' and '40-50' intervals (25 + 15), omitting the '20-30' interval. Option 4 (76) is incorrect because it includes the '50-60' interval (18 + 25 + 15 + 8), which is not less than 50.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Histogram_1766392203298.png?
+30.0,Data Interpretation,Histogram,hard,"The histogram provided shows the distribution of scores for 500 students in an entrance examination. The qualifying score for the exam is 60. All students scoring 60 or more qualified. It is also known that a total of 250 students qualified for the next round. The additional qualifiers, who scored less than 60, were selected via a special quota. Among the students who qualified via this quota, the number of students from the 40-60 score range was three times the number from the 20-40 score range. No student scoring below 20 qualified. Based on this information, what is the ratio of the number of non-qualified students in the 40-60 score range to the number of non-qualified students in the 20-40 score range?",Histogram_1766392265356.png,"{""1"":""4:3"",""2"":""3:4"",""3"":""3:2"",""4"":""2:1""}",1.0,"The correct option is 1.
+
+First, we determine the number of students who qualified based on their score alone (i.e., scoring 60 or more). From the histogram, the number of students in the 60-80 range is 130, and in the 80-100 range is 80. So, 130 + 80 = 210 students qualified with a score of 60 or more.
+
+Next, we find the number of students who qualified via the special quota. The total number of qualified students is 250. Therefore, the number of students who qualified via quota (with a score less than 60) is 250 - 210 = 40 students.
+
+These 40 quota students are from the 20-40 and 40-60 score ranges. Let the number of quota students from the 20-40 range be 'x'. Then the number of quota students from the 40-60 range is '3x'. The total number of quota students is x + 3x = 40. This gives 4x = 40, so x = 10. Thus, 10 quota students are from the 20-40 range, and 3*10 = 30 quota students are from the 40-60 range.
+
+Now, we find the number of non-qualified students in these ranges. The total number of students in the 20-40 range is 100. Since 10 of them qualified, the number of non-qualified students is 100 - 10 = 90. The total number of students in the 40-60 range is 150. Since 30 of them qualified, the number of non-qualified students is 150 - 30 = 120.
+
+Finally, we calculate the required ratio of non-qualified students in the 40-60 range to those in the 20-40 range. The ratio is 120 : 90, which simplifies to 12 : 9, and further to 4 : 3.
+
+Option 2 is incorrect because it is the inverted ratio (90:120 = 3:4). Option 3 is incorrect as it represents the ratio of the total number of students in the respective ranges (150:100 = 3:2), ignoring the qualification criteria. Option 4 results from incorrectly distributing the quota students, for instance, by calculating x = 30 and 3x = 10, leading to non-qualified counts of 70 (100-30) and 140 (150-10), and a ratio of 140:70 or 2:1.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Histogram_1766392265356.png?
+31.0,Data Interpretation,Tabular Data,easy,Refer to the table of weekly book sales. How many books were sold by 'Reader's Corner' on Monday?,Tabular Data_1766418056822.png,"{""1"":""150"",""2"":""140"",""3"":""175"",""4"":""120""}",3.0,"To find the number of books sold by 'Reader's Corner' on Monday, locate the row labeled 'Reader's Corner' and the column labeled 'Monday'. The value at the intersection of this row and column is 175. Therefore, 175 books were sold.
+
+Option 1 (150) is incorrect because it represents the sales for 'Pages & Co.' on Monday. Option 2 (140) is incorrect as it represents the sales for 'Reader's Corner' on Tuesday. Option 4 (120) is incorrect because it is the sales figure for 'The Book Nook' on Monday.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Tabular_Data_1766418056822.png?
+32.0,Data Interpretation,Tabular Data,medium,Refer to the table showing the sales of different electronic gadgets (in '000 units) by ElectroCorp. What is the difference between the combined sales of Smartphones and Wearables in 2022 and the combined sales of Laptops and Tablets in 2021?,Tabular Data_1766418553987.png,"{""1"":""270,000"",""2"":""190,000"",""3"":""750,000"",""4"":""240,000""}",1.0,"Option 1 is correct. First, calculate the combined sales of Laptops and Tablets in 2021. According to the table, the sales were 145 ('000) for Laptops and 95 ('000) for Tablets. The combined total is 145,000 + 95,000 = 240,000. Second, calculate the combined sales of Smartphones and Wearables in 2022. The table shows sales of 310 ('000) for Smartphones and 200 ('000) for Wearables. The combined total is 310,000 + 200,000 = 510,000. The question asks for the difference between these two totals, which is 510,000 - 240,000 = 270,000.
+
+Option 2 is incorrect. This value is the result of misreading the years for the calculation. If one were to calculate the combined sales of Smartphones and Wearables in 2021 (280,000 + 180,000 = 460,000) and subtract the combined sales of Laptops and Tablets in 2022 (160,000 + 110,000 = 270,000), the difference would be 190,000.
+
+Option 3 is incorrect. This is the result of adding the two intermediate totals (510,000 + 240,000 = 750,000) instead of finding their difference.
+
+Option 4 is incorrect. This value, 240,000, represents only the combined sales of Laptops and Tablets in 2021. This is an intermediate step and not the final answer.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Tabular_Data_1766418553987.png?
+33.0,Data Interpretation,Tabular Data,hard,"The table below shows the annual performance metrics for five departments in a company. The company has instituted a Performance Incentive Plan with the following rules: 1) The plan is only applicable to departments where the annual number of projects completed per employee is at least 2.2. 2) For all eligible departments, a base incentive of $500 per employee is awarded. 3) An additional 'Efficiency Bonus' of 20% on the department's total base incentive amount is given, but only if the department's Average Project Completion Time is below 30 days. Based on these rules, what is the total incentive amount, in dollars, disbursed by the company?",Tabular Data_1766419213200.png,"{""1"":""$116,000"",""2"":""$102,500"",""3"":""$123,000"",""4"":""$128,500""}",1.0,"The correct option is 1. The solution requires a multi-step calculation based on the conditions provided.
+
+Step 1: Identify departments eligible for the incentive plan. Eligibility requires the number of projects per employee to be at least 2.2.
+- IT: 150 projects / 60 employees = 2.5 (Eligible)
+- HR: 45 projects / 25 employees = 1.8 (Not Eligible)
+- Marketing: 90 projects / 40 employees = 2.25 (Eligible)
+- Finance: 75 projects / 30 employees = 2.5 (Eligible)
+- Operations: 210 projects / 75 employees = 2.8 (Eligible)
+
+Step 2: Calculate the base incentive for each eligible department ($500 per employee).
+- IT: 60 employees * $500 = $30,000
+- Marketing: 40 employees * $500 = $20,000
+- Finance: 30 employees * $500 = $15,000
+- Operations: 75 employees * $500 = $37,500
+
+Step 3: Check for and calculate the 'Efficiency Bonus' for eligible departments. The bonus applies if the Average Project Completion Time is less than 30 days.
+- IT: Avg. Time is 28 days (< 30). Bonus = 20% of $30,000 = $6,000.
+- Marketing: Avg. Time is 35 days (not < 30). Bonus = $0.
+- Finance: Avg. Time is 42 days (not < 30). Bonus = $0.
+- Operations: Avg. Time is 25 days (< 30). Bonus = 20% of $37,500 = $7,500.
+
+Step 4: Calculate the total incentive for each department and sum them up.
+- IT Total: $30,000 (base) + $6,000 (bonus) = $36,000
+- Marketing Total: $20,000 (base) + $0 (bonus) = $20,000
+- Finance Total: $15,000 (base) + $0 (bonus) = $15,000
+- Operations Total: $37,500 (base) + $7,500 (bonus) = $45,000
+- Total Disbursed Amount: $36,000 + $20,000 + $15,000 + $45,000 = $116,000.
+
+Option 2 is incorrect because it is the sum of the base incentives for eligible departments ($102,500) without adding the Efficiency Bonus. Option 3 is incorrect because it results from incorrectly applying the 20% bonus to the total base incentive of all eligible departments ($102,500 * 1.2 = $123,000) instead of only to the departments that met the time criteria. Option 4 is incorrect because it calculates the base incentive for all five departments (including the ineligible HR department) and then adds the correct bonuses, leading to an inflated total.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Tabular_Data_1766419213200.png?
+34.0,Data Interpretation,Caselets,easy,"Refer to the table, which shows the number of units of different items sold by a bakery on a certain day. How many units of Cookies were sold?",Caselets_1766419240591.png,"{""1"":""25"",""2"":""30"",""3"":""40"",""4"":""55""}",3.0,"Option 3 is correct. The question asks for the number of units of Cookies sold. By looking at the row corresponding to 'Cookies' in the provided table, we can directly read the value in the 'Units Sold' column, which is 40.
+
+Option 1 is incorrect because 25 is the number of units of Cakes sold. Option 2 is incorrect because 30 is the number of units of Breads sold. Option 4 is incorrect because 55 is the number of units of Pastries sold.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Caselets_1766419240591.png?
+35.0,Data Interpretation,Caselets,medium,"The table provides data on the number of students in three different departments of a college. Based on the information, what is the difference between the total number of boys in the Arts and Commerce departments combined, and the total number of girls in the Science department?",Caselets_1766419602491.png,"{""1"":""190"",""2"":""50"",""3"":""110"",""4"":""130""}",1.0,"The correct option is 1. The calculation is as follows:
+
+First, calculate the number of boys in the Arts department. The ratio of boys to girls is 5:3, so the total parts are 5 + 3 = 8. The number of boys is (5/8) * 480 = 300.
+
+Next, calculate the number of boys in the Commerce department. The ratio of boys to girls is 4:5, so the total parts are 4 + 5 = 9. The number of boys is (4/9) * 540 = 240.
+
+The total number of boys in the Arts and Commerce departments combined is 300 + 240 = 540.
+
+Then, calculate the number of girls in the Science department. The ratio of boys to girls is 6:7, so the total parts are 6 + 7 = 13. The number of girls is (7/13) * 650 = 350.
+
+Finally, find the difference: 540 - 350 = 190.
+
+Option 2 is incorrect because 50 is the difference between the number of girls in Science (350) and the number of boys in Arts (300), ignoring the boys from Commerce. Option 3 is incorrect because 110 is the difference between the number of girls in Science (350) and the number of boys in Commerce (240), ignoring the boys from Arts. Option 4 is incorrect; it might result from a miscalculation, such as finding the difference between girls in Arts & Commerce combined (180+300=480) and girls in Science (350), which gives 130. The question asks for boys.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Caselets_1766419602491.png?
+36.0,Data Interpretation,Caselets,hard,"Read the following information in conjunction with the provided table about funding at the Quantum Dynamics research institute. All funding figures are in millions of dollars.
+
+In 2022, the total funding from Government Grants (GG) was 11/14th of the total funding from Corporate Sponsorships (CS). The total funding for the Chemistry division was 1.5 times the total funding for the Biology division.
+
+In 2023, the total funding from Government Grants (GG) for the institute was 70 million. The total funding for the Physics division was 10 million less than its total funding in 2022. For the Chemistry division, the funding from CS was 5 million less than its funding from GG.
+
+What was the approximate percentage increase in funding from Corporate Sponsorships (CS) for the Physics division from 2022 to 2023?",Caselets_1766420580446.png,"{""1"":""16.7%"",""2"":""-20.0%"",""3"":""24.0%"",""4"":""14.3%""}",1.0,"The solution requires a step-by-step reconstruction of the funding data for both years by combining the information from the table and the text.
+
+**Step 1: Complete the 2022 Data**
+1.  From the table for Physics: Total funding is 50, GG is 20. So, CS funding = 50 - 20 = 30 million.
+2.  From the table for Biology: All values are given. Total funding is 30 million.
+3.  From the text, total funding for Chemistry = 1.5 * total funding for Biology = 1.5 * 30 = 45 million. From the table, Chemistry's CS funding is 25 million. Therefore, Chemistry's GG funding = 45 - 25 = 20 million.
+4.  Now, calculate the 2022 totals: Total GG = 20 (Physics) + 20 (Chem) + 15 (Bio) = 55 million. Total CS = 30 (Physics) + 25 (Chem) + 15 (Bio) = 70 million. Total Funding = 55 + 70 = 125 million.
+5.  Verify with the text: Total GG (55) should be 11/14th of Total CS (70). (11/14) * 70 = 55. This is consistent.
+
+**Step 2: Complete the 2023 Data**
+1.  From the text, total funding for the Physics division in 2023 = Total funding in 2022 - 10 = 50 - 10 = 40 million.
+2.  From the table, Physics CS funding for 2023 is 35 million. Therefore, Physics GG funding = 40 - 35 = 5 million.
+3.  From the text, for Chemistry, CS funding = GG funding - 5. Also, from the table, Chem GG + Chem CS = 65. Substituting the first equation into the second: Chem GG + (Chem GG - 5) = 65 => 2 * Chem GG = 70 => Chem GG = 35 million. Thus, Chem CS = 35 - 5 = 30 million.
+4.  From the text, Total GG funding for 2023 is 70 million. We can find Biology's GG funding by subtraction: Bio GG = Total GG - Physics GG - Chem GG = 70 - 5 - 35 = 30 million. (This matches the table where Bio Total is 50 and Bio CS is 20, so Bio GG = 30).
+
+**Step 3: Calculate the Percentage Increase**
+1.  From Step 1, funding from CS for the Physics division in 2022 was 30 million.
+2.  From Step 2 (or the table), funding from CS for the Physics division in 2023 is 35 million.
+3.  Increase = 35 - 30 = 5 million.
+4.  Percentage Increase = (Increase / Initial Value) * 100 = (5 / 30) * 100 = (1/6) * 100 = 16.67%.
+
+Thus, the approximate percentage increase is 16.7%.
+
+Option 2 is incorrect. -20% represents the percentage decrease in the *total* funding for the Physics division ((40-50)/50).
+Option 3 is incorrect. 24% is the percentage increase in the institute's *total* funding ((155-125)/125).
+Option 4 is incorrect. 14.3% results from an error in the percentage calculation, using the final value as the base instead of the initial value ((5/35)*100).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Caselets_1766420580446.png?
+37.0,Data Sufficiency,Two Statements – Single Variable,easy,"What is the value of the variable x?
+
+Statement (1): x is a positive integer.
+Statement (2): The relationship involving x is given by the equation shown.",Two Statements – Single Variable_1766420622858.png,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""Both statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""Each statement ALONE is sufficient.""}",3.0,"The correct option is 3. To find a unique value for x, we need to use information from both statements together. Statement (2), from the equation x² = 16, tells us that x could be 4 or -4. Statement (1) specifies that x must be a positive integer. Combining these two conditions, the only possible value for x is 4. Thus, both statements together are sufficient.
+
+Statement (1) alone is not sufficient. Knowing that x is a positive integer leaves infinite possibilities (x could be 1, 2, 3, etc.), so we cannot determine a unique value for x from this statement alone.
+
+Statement (2) alone is not sufficient. The equation x² = 16 has two solutions: x = 4 and x = -4. Since we cannot determine a single, unique value for x from this statement, it is not sufficient by itself.
+
+Since neither statement is sufficient on its own, options 1, 2, and 4 are incorrect. Option 3 is the only correct choice as the combination of the two statements provides a unique answer.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Two_Statements_-_Single_Variable_1766420622858.png?
+38.0,Data Sufficiency,Two Statements – Single Variable,medium,"What is the value of the integer y? Refer to the two statements below.
+
+Statement (1): y is a solution to the equation shown.
+Statement (2): y is an even prime number.",Two Statements – Single Variable_1766420681089.png,"{""1"":""Statement (1) alone is sufficient to answer the question, but statement (2) alone is not."",""2"":""Statement (2) alone is sufficient to answer the question, but statement (1) alone is not."",""3"":""Both statements together are sufficient to answer the question, but neither statement alone is sufficient."",""4"":""The question cannot be answered even with the information from both statements.""}",2.0,"The correct option is 2.
+
+To determine the value of 'y', we must analyze each statement's sufficiency. Let's evaluate Statement (2) first. A prime number is a natural number greater than 1 with no positive divisors other than 1 and itself. The prime numbers are 2, 3, 5, 7, etc. An even number is an integer divisible by 2. The only number that is both even and prime is 2. Therefore, Statement (2) uniquely determines that y = 2. This statement alone is sufficient.
+
+Now, let's evaluate Statement (1). The equation is y² - 5y + 6 = 0. Factoring the quadratic expression gives (y - 2)(y - 3) = 0. The solutions are y = 2 and y = 3. Since there are two possible values for y, Statement (1) does not provide a single, unique value. Thus, Statement (1) alone is not sufficient.
+
+Since Statement (2) alone is sufficient and Statement (1) alone is not, the correct answer is that Statement (2) alone is sufficient to answer the question, but statement (1) alone is not. Option 1 is incorrect because Statement (1) is not sufficient. Option 3 is incorrect because Statement (2) is sufficient on its own, so both are not needed together. Option 4 is incorrect because the question can be answered using Statement (2).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Two_Statements_-_Single_Variable_1766420681089.png?
+39.0,Data Sufficiency,Two Statements – Single Variable,hard,"If `x` is an integer and `k` is a positive integer, what is the value of `x`? Refer to the equation shown.
+
+Statement I: `k` is a prime number.
+Statement II: `k` < 4.",Two Statements – Single Variable_1766420759676.png,"{""1"":""Statement (I) ALONE is sufficient, but statement (II) alone is not sufficient to answer the question."",""2"":""Statement (II) ALONE is sufficient, but statement (I) alone is not sufficient to answer the question."",""3"":""BOTH statements (I) and (II) TOGETHER are sufficient to answer the question, but NEITHER statement ALONE is sufficient."",""4"":""Statements (I) and (II) TOGETHER are NOT sufficient to answer the question.""}",1.0,"The correct option is 1.
+
+First, let's analyze the equation provided in the question stem. The equation is a cubic polynomial in `x`. We can factor it by grouping:
+`x^3 + x^2 - kx - k = 0`
+`x^2(x + 1) - k(x + 1) = 0`
+`(x^2 - k)(x + 1) = 0`
+This gives two possibilities for the value of `x`: `x + 1 = 0` or `x^2 - k = 0`. So, `x = -1` or `x^2 = k`. Since the question states that `x` is an integer, the solutions depend on the value of `k`. If `k` is a perfect square (e.g., k = m^2 for some integer m), then `x^2 = k` yields integer solutions `x = m` and `x = -m`. In this case, the possible integer values for `x` are `-1`, `m`, and `-m`. If `k` is not a perfect square, `x^2 = k` has no integer solutions, so the only possible integer value for `x` is `-1`.
+
+Now let's evaluate Statement (I): `k` is a prime number. The prime numbers are 2, 3, 5, 7, 11, etc. A prime number has only two distinct factors: 1 and itself. A perfect square `m^2` (for m > 1) has at least three factors: 1, `m`, and `m^2`. The only perfect square that is not in this category is `1^2=1`, which is not a prime number. Therefore, no prime number is a perfect square. This means `k` cannot be a perfect square. Consequently, the equation `x^2 = k` has no integer solutions for `x`. The only possible integer solution for `x` from the original equation is `x = -1`. This gives a single, unique value for `x`. Thus, Statement (I) alone is sufficient.
+
+Next, let's evaluate Statement (II): `k < 4`. Since `k` is a positive integer, the possible values for `k` are 1, 2, and 3. We must check if this information leads to a unique value for `x`.
+Case 1: `k = 1`. The number 1 is a perfect square (1^2). The possible solutions for `x` are `x = -1` and the solutions to `x^2 = 1`, which are `x = 1` and `x = -1`. So, if `k=1`, `x` could be -1 or 1. This is not a unique value.
+Case 2: `k = 2`. The number 2 is not a perfect square. The only integer solution is `x = -1`.
+Case 3: `k = 3`. The number 3 is not a perfect square. The only integer solution is `x = -1`.
+Since `k` could be 1, we cannot be certain that `x = -1`. The value of `x` could be 1. Because there is no single unique value for `x` that satisfies the condition for all possible values of `k`, Statement (II) alone is not sufficient.
+
+Since Statement (I) alone is sufficient and Statement (II) alone is not sufficient, the correct option is 1. Option 2 is incorrect because Statement (II) is not sufficient. Option 3 is incorrect because Statement (I) is sufficient by itself. Option 4 is incorrect because the question can be answered using Statement (I).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Two_Statements_-_Single_Variable_1766420759676.png?
+40.0,Data Sufficiency,Two Statements – Two Variables,easy,"If p and q are two numbers, what is the value of p? Refer to the statements provided in the image.",Two Statements – Two Variables_1766420792852.png,"{""1"":""Statement (1) alone is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) alone is sufficient, but statement (1) alone is not sufficient."",""3"":""Both statements together are sufficient, but neither statement alone is sufficient."",""4"":""Statements (1) and (2) together are not sufficient.""}",3.0,"3 is the correct option. Statement (1) provides a single equation, p + q = 12, with two unknown variables. We cannot determine a unique value for p from this equation alone (for example, if q=2, p=10; if q=6, p=6). Thus, Statement (1) is not sufficient. Similarly, Statement (2) provides another single equation, p - q = 4, with two unknowns. This is also not sufficient to find a unique value for p (for example, if q=1, p=5; if q=2, p=6).
+
+However, if we use both statements together, we have a system of two distinct linear equations with two variables:
+1) p + q = 12
+2) p - q = 4
+Adding the two equations gives 2p = 16, which means p = 8. Since we can find a unique value for p, both statements together are sufficient.
+
+Since neither statement is sufficient on its own, but they are sufficient together, the correct choice is that both statements together are sufficient, but neither is sufficient alone. Options 1 and 2 are incorrect because neither statement is sufficient by itself. Option 4 is incorrect because the statements together are sufficient.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Two_Statements_-_Two_Variables_1766420792852.png?
+41.0,Data Sufficiency,Two Statements – Two Variables,medium,"If a and b are real numbers, what is the value of the expression a - b?
+
+Statement (1): The relationship between a and b is described by the equation shown in the image.
+Statement (2): The sum of a and b is 6.",Two Statements – Two Variables_1766420872825.png,"{""1"":""Statement (1) alone is sufficient to answer the question, but statement (2) alone is not."",""2"":""Statement (2) alone is sufficient to answer the question, but statement (1) alone is not."",""3"":""Both statements together are sufficient to answer the question, but neither statement alone is sufficient."",""4"":""The data in both statements together are not sufficient to answer the question.""}",3.0,"To determine the value of 'a - b', we need to analyze each statement.
+
+Statement (1) provides the equation a² - b² = 24. This can be factored using the difference of squares formula into (a - b)(a + b) = 24. To find the value of 'a - b' from this equation, we would need the value of 'a + b'. Since 'a + b' is unknown, we cannot find a unique value for 'a - b'. For example, if a + b = 12, then a - b = 2. If a + b = 8, then a - b = 3. Therefore, statement (1) alone is not sufficient.
+
+Statement (2) states that a + b = 6. This statement gives the sum of a and b, but provides no information about their difference. There are infinite pairs of 'a' and 'b' that sum to 6 (e.g., a=4, b=2 gives a-b=2; a=5, b=1 gives a-b=4). Therefore, statement (2) alone is not sufficient.
+
+When we combine both statements, we have a system of two pieces of information: (a - b)(a + b) = 24 from statement (1), and a + b = 6 from statement (2). We can substitute the value from statement (2) into the equation from statement (1). This gives us (a - b) * 6 = 24. Dividing both sides by 6, we get a - b = 4. We have found a unique value for the expression 'a - b'.
+
+Since neither statement alone is sufficient, but both statements together are sufficient to answer the question, the correct option is 3.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Two_Statements_-_Two_Variables_1766420872825.png?
+42.0,Data Sufficiency,Two Statements – Two Variables,hard,"If x and y are non-zero numbers, what is the value of the expression x/y?
+
+Statement (1): The relationship between x and y is described by the equation shown in the image.
+Statement (2): 3x = 6y",Two Statements – Two Variables_1766421039784.png,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""EACH statement ALONE is sufficient.""}",4.0,"4
+To determine the value of x/y, we must evaluate each statement's sufficiency.
+
+Statement (1) provides an equation. We can simplify it algebraically:
+(x^2 + 4y^2) / (4xy) = 1
+Multiply both sides by 4xy (which is non-zero since x and y are non-zero):
+x^2 + 4y^2 = 4xy
+Rearrange the terms to one side:
+x^2 - 4xy + 4y^2 = 0
+This is a perfect square trinomial, which can be factored as:
+(x - 2y)^2 = 0
+Taking the square root of both sides gives:
+x - 2y = 0
+x = 2y
+Since y is non-zero, we can divide by y to find the value of the ratio x/y:
+x/y = 2
+Thus, Statement (1) alone is sufficient to determine a unique value for x/y.
+
+Statement (2) provides the equation 3x = 6y. We can simplify this equation by dividing both sides by 3:
+x = 2y
+Again, since y is non-zero, we can divide by y:
+x/y = 2
+Thus, Statement (2) alone is also sufficient to determine a unique value for x/y.
+
+Since each statement alone provides enough information to answer the question, the correct option is that each statement alone is sufficient. Options 1, 2, and 3 are incorrect because they claim that at least one of the statements is not sufficient by itself.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Two_Statements_-_Two_Variables_1766421039784.png?
+43.0,Data Sufficiency,Arithmetic Data Sufficiency,easy,"If x is a positive integer, what is its value?
+
+(1) x is a prime number between 10 and 15.
+(2) The sum of the digits of x is 4.",no image,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""EACH statement ALONE is sufficient.""}",3.0,"To answer the question, we need to find a unique value for the positive integer x.
+
+Analyzing statement (1) alone: It states that x is a prime number between 10 and 15. The prime numbers in this range are 11 and 13. Since x could be either of two values, we cannot determine a unique value for x. Thus, statement (1) alone is not sufficient.
+
+Analyzing statement (2) alone: It states that the sum of the digits of x is 4. There are multiple integers that satisfy this condition, such as 4, 13, 22, 31, 40, etc. Since we cannot determine a unique value for x, statement (2) alone is not sufficient.
+
+Combining both statements: From statement (1), we know that x must be either 11 or 13. From statement (2), we know the sum of the digits of x is 4. Let's check the possibilities from statement (1). If x = 11, the sum of digits is 1 + 1 = 2, which contradicts statement (2). If x = 13, the sum of digits is 1 + 3 = 4, which matches statement (2). Therefore, using both statements together, we find a unique value, x = 13.
+
+Since we need both statements to find a unique answer, the correct option is 3. Option 1 and 2 are incorrect because neither statement is sufficient on its own. Option 4 is incorrect for the same reason.",
+44.0,Data Sufficiency,Arithmetic Data Sufficiency,medium,"If x and y are positive integers that satisfy the relationship shown in the equation, what is the value of x?",Arithmetic Data Sufficiency_1766421132956.png,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""Statements (1) and (2) TOGETHER are NOT sufficient.""}",2.0,"The problem asks for the value of the positive integer x, given the equation relating x and y.
+
+First, let's find the possible integer pairs (x, y) that satisfy the equation. Since x and y must be positive integers, we can test values for x and see if we get an integer value for y. The equation can be rearranged to 3y = 47 - 5x. This means that 47 - 5x must be a positive multiple of 3.
+- If x = 1, 3y = 47 - 5 = 42, so y = 14. This is a valid pair (1, 14).
+- If x = 2, 3y = 47 - 10 = 37. Not a multiple of 3.
+- If x = 3, 3y = 47 - 15 = 32. Not a multiple of 3.
+- If x = 4, 3y = 47 - 20 = 27, so y = 9. This is a valid pair (4, 9).
+- If x = 5, 3y = 47 - 25 = 22. Not a multiple of 3.
+- If x = 6, 3y = 47 - 30 = 17. Not a multiple of 3.
+- If x = 7, 3y = 47 - 35 = 12, so y = 4. This is a valid pair (7, 4).
+- If x = 8, 3y = 47 - 40 = 7. Not a multiple of 3.
+- If x is 9 or greater, 5x is 45 or greater, making 47 - 5x too small to yield a positive y.
+So, the possible pairs (x, y) are (1, 14), (4, 9), and (7, 4). The possible values for x are 1, 4, or 7.
+
+Statement (1): y < 10.
+This condition is met by the pairs (4, 9) and (7, 4), as in both cases y is less than 10. It eliminates the pair (1, 14). This leaves two possible values for x: 4 and 7. Since we cannot determine a unique value for x, statement (1) alone is not sufficient.
+
+Statement (2): x > 5.
+This condition is only met by the pair (7, 4), since x=7 is the only value of x greater than 5. The other possible values for x (1 and 4) are eliminated. This gives a unique value for x, which is 7. Therefore, statement (2) alone is sufficient.
+
+Since statement (2) alone is sufficient and statement (1) alone is not, the correct answer is option 2.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Arithmetic_Data_Sufficiency_1766421132956.png?
+45.0,Data Sufficiency,Arithmetic Data Sufficiency,hard,"A set S consists of 'n' consecutive positive integers. What is the value of 'n'?
+
+Statement (1): The sum of the integers in the set is 105.
+Statement (2): The product of the integers in the set is a multiple of 819.",no image,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient to answer the question."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient to answer the question."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient to answer the question."",""4"":""Statements (1) and (2) TOGETHER are NOT sufficient to answer the question.""}",4.0,"The correct option is 4 because the information provided in both statements, even when combined, is not sufficient to determine a unique value for 'n'.
+
+Let's analyze Statement (1). Let the first integer in the sequence be 'k', where k is a positive integer (k = 1). The sum of 'n' consecutive integers is given by the arithmetic progression formula: Sum = (n/2) * (first term + last term). The last term is k + n - 1. So, 105 = (n/2) * (k + k + n - 1), which simplifies to 210 = n * (2k + n - 1). Since k = 1, we have 2k = 2, which means (2k + n - 1) = (2 + n - 1) = n + 1. So, 'n' and '(2k + n - 1)' are two factors of 210, where 'n' is the smaller factor. The factors of 210 are 1, 2, 3, 5, 6, 7, 10, 14, 15, 21, 30, 35, 42, 70, 105, 210. We can find multiple pairs that work. For example, if n = 6, then 2k + 5 = 35, so 2k = 30 and k = 15. This is a valid sequence. If n = 7, then 2k + 6 = 30, so 2k = 24 and k = 12. This is also a valid sequence. Since 'n' can be 6, 7, or other values, statement (1) alone is not sufficient.
+
+Now, let's analyze Statement (2). The product of the integers is a multiple of 819. First, we find the prime factorization of 819: 819 = 9 * 91 = 3^2 * 7 * 13. This means the set of 'n' consecutive integers must contain factors that multiply to 819. Specifically, the product must be divisible by 9, 7, and 13. We can construct sets of consecutive integers of different lengths that satisfy this. For example, the set {7, 8, 9, 10, 11, 12, 13} has n=7; its product is divisible by 7, 9, and 13. Another example is the set {6, 7, 8, 9, 10, 11, 12, 13}, where n=8; its product is also divisible by 7, 9, and 13. Since 'n' is not unique, statement (2) alone is not sufficient.
+
+Finally, let's combine both statements. From statement (1), we found a set of possible values for 'n', which includes {1, 2, 3, 5, 6, 7, 10, 14}. We must check which of these cases also satisfy statement (2). 
+Case n=7: From (1), k=12. The set is {12, 13, 14, 15, 16, 17, 18}. This set contains 13, 14 (a multiple of 7), and 18 (a multiple of 9). The product is a multiple of 819. So, n=7 is a possible answer.
+Case n=10: From (1), k=6. The set is {6, 7, 8, 9, 10, 11, 12, 13, 14, 15}. This set contains 7, 9, and 13. The product is a multiple of 819. So, n=10 is a possible answer.
+Case n=14: From (1), k=1. The set is {1, 2, ..., 14}. This set contains 7, 9, and 13. The product is a multiple of 819. So, n=14 is a possible answer.
+Since we have found at least three possible values for 'n' (7, 10, and 14) that satisfy both statements, we cannot determine a unique value for 'n'. Thus, the statements together are not sufficient.
+
+Therefore, option 1 is incorrect because statement (1) is not sufficient. Option 2 is incorrect because statement (2) is not sufficient. Option 3 is incorrect because combining both statements does not yield a unique answer.",
+46.0,Data Sufficiency,Algebraic Data Sufficiency,easy,"What is the value of the expression shown in the image?
+
+Statement (1): 3x - 1 = 11
+Statement (2): x / 2 = 2",Algebraic Data Sufficiency_1766421263633.png,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""EACH statement ALONE is sufficient.""}",4.0,"To find the value of the expression in the image, we need to determine a unique value for 'x'.
+
+From Statement (1), we have the equation 3x - 1 = 11. Solving for x, we add 1 to both sides to get 3x = 12. Dividing by 3, we find x = 4. Since this gives a unique value for x, we can find the value of the expression (4 + 8 = 12). Therefore, Statement (1) alone is sufficient.
+
+From Statement (2), we have the equation x / 2 = 2. Solving for x, we multiply both sides by 2 to get x = 4. This also gives a unique value for x, allowing us to find the value of the expression (4 + 8 = 12). Therefore, Statement (2) alone is also sufficient.
+
+Since each statement by itself is sufficient to answer the question, the correct option is 4. Options 1 and 2 are incorrect because both statements are sufficient, not just one. Option 3 is incorrect because the statements do not need to be combined.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Algebraic_Data_Sufficiency_1766421263633.png?
+47.0,Data Sufficiency,Algebraic Data Sufficiency,medium,"If p and q are non-zero numbers, what is the value of the expression shown in the image?
+
+Statement (1): 4p + 10q = 0
+Statement (2): p² = 25",Algebraic Data Sufficiency_1766421335371.png,"{""1"":""Statement (1) alone is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) alone is sufficient, but statement (1) alone is not sufficient."",""3"":""Both statements together are sufficient, but neither statement alone is sufficient."",""4"":""Each statement alone is sufficient.""}",1.0,"To determine the value of the expression, we need to find a unique value for (p/q)². 
+
+Let's analyze Statement (1): 4p + 10q = 0. This can be rearranged to 4p = -10q. Since q is non-zero, we can divide both sides by q, which gives 4(p/q) = -10. Dividing by 4 gives p/q = -10/4 = -5/2. Now, we can find the value of the expression: (p/q)² = (-5/2)² = 25/4. Since we found a unique value, Statement (1) alone is sufficient.
+
+Let's analyze Statement (2): p² = 25. This means p = 5 or p = -5. However, this statement provides no information about the value of q. Since q can be any non-zero number, the ratio p/q can have infinitely many values. For example, if p=5, q could be 1 (p/q = 5) or q could be 2 (p/q = 5/2). The value of (p/q)² is not unique. Therefore, Statement (2) alone is not sufficient.
+
+Since Statement (1) alone is sufficient and Statement (2) alone is not sufficient, the correct option is 1.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Algebraic_Data_Sufficiency_1766421335371.png?
+48.0,Data Sufficiency,Algebraic Data Sufficiency,hard,"If `a`, `b`, and `c` are positive real numbers, what is the value of the expression designated as `E` in the image? Refer to the statements provided in the image to answer.",Algebraic Data Sufficiency_1766421478902.png,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""Statements (1) and (2) TOGETHER are NOT sufficient to answer the question.""}",3.0,"Let the expression to be evaluated be E. It is a symmetric polynomial in a, b, and c. We can express E in terms of elementary symmetric polynomials: S1 = a+b+c, S2 = ab+bc+ca, and S3 = abc.
+The identity is E = (a+b)(b+c)(c+a) = (S1-a)(S1-b)(S1-c) = S1^3 - (a+b+c)S1^2 + (ab+bc+ca)S1 - abc = S1*S2 - S3.
+So, to find the value of E, we need to find the values of S1, S2, and S3.
+
+Statement (1) provides S1 = a+b+c = 10 and S2 = ab+bc+ca = 31. Using these, E = 10 * 31 - abc = 310 - abc. Since the value of abc is not known, statement (1) alone is not sufficient. We can show that multiple sets of positive real numbers satisfy these two equations with different products 'abc', leading to different values for E.
+
+Statement (2) provides a^3+b^3+c^3 = 160. This single equation with three variables has infinitely many solutions for a, b, and c (for example, a = (160)^(1/3), b and c approaching 0). Therefore, statement (2) alone is not sufficient.
+
+Now, let's consider both statements together. We have S1=10, S2=31, and a^3+b^3+c^3=160. We use the identity: a^3+b^3+c^3 - 3abc = (a+b+c)(a^2+b^2+c^2 - ab-bc-ca). First, we find a^2+b^2+c^2 = (a+b+c)^2 - 2(ab+bc+ca) = S1^2 - 2*S2 = 10^2 - 2*31 = 100 - 62 = 38. Now, we substitute the known values into the identity: 160 - 3(abc) = (10)(38 - 31) = 10 * 7 = 70. This gives 3(abc) = 160 - 70 = 90, which means abc = 30. We have found a unique value for S3 = abc. Now we can calculate E = 310 - abc = 310 - 30 = 280. It's worth noting that the numbers a,b,c are the roots of the cubic t^3 - 10t^2 + 31t - 30 = 0, which are {2, 3, 5}, all positive real numbers, so the premises are consistent. Since we found a unique value for E, both statements together are sufficient.
+
+Therefore, option 3 is the correct answer because neither statement is sufficient on its own, but they are sufficient when combined.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Algebraic_Data_Sufficiency_1766421478902.png?
+49.0,Data Sufficiency,Comparison-Based Data Sufficiency,easy,"Among three people, Amy, Ben, and Chloe, is Ben older than Chloe?
+
+Statement (1): Ben is older than Amy, and Amy is older than Chloe.
+Statement (2): Ben is older than Amy.",no image,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""Statements (1) and (2) TOGETHER are NOT sufficient.""}",1.0,"To determine if Ben is older than Chloe, we need to find a definitive relationship between their ages. The question requires a 'Yes' or 'No' answer.
+
+Analyzing Statement (1) alone: This statement provides two comparisons: Ben is older than Amy (Ben > Amy), and Amy is older than Chloe (Amy > Chloe). Using the transitive property, if Ben is older than Amy and Amy is older than Chloe, it must be true that Ben is older than Chloe (Ben > Chloe). This statement is sufficient to answer the question with a definite 'Yes'.
+
+Analyzing Statement (2) alone: This statement tells us that Ben is older than Amy (Ben > Amy). However, it gives no information about Chloe's age in relation to either Ben or Amy. Chloe could be older than Ben, or younger than Amy. Since we cannot determine the relationship between Ben and Chloe, this statement is not sufficient.
+
+Since Statement (1) alone is sufficient and Statement (2) alone is not, the correct choice is that Statement (1) alone is sufficient.",
+50.0,Data Sufficiency,Comparison-Based Data Sufficiency,medium,"The variables p, q, r, and s represent four distinct positive numbers. Is q the second largest number among them? Refer to the statements provided in the image.",Comparison-Based Data Sufficiency_1766421567405.png,"{""1"":""Statement (1) ALONE is sufficient, but statement (2) alone is not sufficient."",""2"":""Statement (2) ALONE is sufficient, but statement (1) alone is not sufficient."",""3"":""BOTH statements TOGETHER are sufficient, but NEITHER statement ALONE is sufficient."",""4"":""Statements (1) and (2) TOGETHER are NOT sufficient.""}",3.0,"To determine if q is the second largest number, we need to establish the complete order of the four numbers p, q, r, and s.
+
+First, consider Statement (1) alone. It states that p > q > r. However, it gives no information about the value of s relative to the other three numbers. The number s could be the largest, second largest, third largest, or smallest. For example, if we have the order p > q > s > r, then q is the second largest. But if we have the order s > p > q > r, then p is the second largest. Since we cannot arrive at a definite 'yes' or 'no' answer, Statement (1) alone is not sufficient.
+
+Next, consider Statement (2) alone. It states that s > p. This provides a relationship between s and p but tells us nothing about the positions of q and r. For example, we could have the order s > q > p > r, which would make q the second largest. Alternatively, we could have s > p > q > r, which would make p the second largest. As there are multiple possibilities, Statement (2) alone is not sufficient.
+
+Now, consider both statements together. From Statement (1), we have p > q > r. From Statement (2), we have s > p. By combining these two inequalities, we can establish a single, definitive order for all four numbers: s > p > q > r. In this order, s is the largest number, p is the second largest, q is the third largest, and r is the smallest. With this information, we can definitively answer the question ""Is q the second largest number?"" with a ""No"". Since we can provide a conclusive answer, both statements together are sufficient.
+
+Therefore, since neither statement alone is sufficient but both are sufficient when taken together, the correct option is 3.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Comparison-Based_Data_Sufficiency_1766421567405.png?
+51.0,Data Sufficiency,Comparison-Based Data Sufficiency,hard,"If p and q are non-zero integers, is p > q? To answer this question, which of the statements is/are sufficient? Refer to the image for the statements.",Comparison-Based Data Sufficiency_1766421659759.png,"{""1"":""Statement 1 alone is sufficient, but statement 2 alone is not sufficient."",""2"":""Statement 2 alone is sufficient, but statement 1 alone is not sufficient."",""3"":""Both statements together are sufficient, but neither statement alone is sufficient."",""4"":""Statements 1 and 2 together are not sufficient.""}",3.0,"The correct option is 3.
+
+Let's analyze Statement 1. The equation given is p² = q² + 2q + 1. The right side of the equation is a perfect square, (q+1)². So, the statement is equivalent to p² = (q+1)². Taking the square root of both sides, we get two possibilities: p = q+1 or p = -(q+1). Case A: If p = q+1, then p is clearly greater than q. The answer to the question 'Is p > q?' would be 'Yes'. Case B: If p = -(q+1) = -q-1. We can't determine if p > q. For example, if q = 1 (a non-zero integer), then p = -1-1 = -2. Here, p < q. The answer is 'No'. If q = -2 (a non-zero integer), then p = -(-2)-1 = 1. Here, p > q. The answer is 'Yes'. Since we can get both 'Yes' and 'No' from Statement 1, it is not sufficient.
+
+Now, let's analyze Statement 2. The statement is p + q > 0. This statement alone is not sufficient. For example, if p = 5 and q = 1, then p+q = 6 > 0 and p > q. The answer is 'Yes'. However, if p = 1 and q = 5, then p+q = 6 > 0 but p < q. The answer is 'No'. Thus, Statement 2 is not sufficient.
+
+Now, let's combine both statements. From Statement 1, we have two cases: p = q+1 or p = -q-1. We must check these cases against Statement 2 (p + q > 0). In Case A (p = q+1), substituting p into the inequality from Statement 2 gives (q+1) + q > 0, which simplifies to 2q + 1 > 0, or q > -0.5. Since q is a non-zero integer, q must be a positive integer (q = 1). In this scenario, p = q+1 is always greater than q. This case consistently gives a 'Yes' answer. In Case B (p = -q-1), substituting p into the inequality from Statement 2 gives (-q-1) + q > 0, which simplifies to -1 > 0. This is a contradiction and is impossible. Therefore, Case B cannot occur when both statements are true. The only possibility when both statements are considered together is that p = q+1, which definitively means p > q. So, together the statements are sufficient.
+
+Since neither statement is sufficient on its own, but they are sufficient when combined, the correct option is 3. Option 1 is incorrect because Statement 1 is not sufficient alone. Option 2 is incorrect because Statement 2 is not sufficient alone. Option 4 is incorrect because the combined statements are sufficient to provide a definite answer.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Comparison-Based_Data_Sufficiency_1766421659759.png?
+52.0,Inequalities,Basic Inequalities,easy,Which of the following options correctly represents the solution for the inequality shown in the image?,Basic Inequalities_1766423288328.png,"{""1"":""x < -4"",""2"":""x > -4"",""3"":""x < 4"",""4"":""x > 4""}",1.0,"The correct option is 1. The inequality is -5x > 20. To solve for x, we must divide both sides by -5. A fundamental rule of inequalities is that when multiplying or dividing both sides by a negative number, the inequality sign must be reversed. Thus, the '>' sign becomes a '<' sign. Dividing 20 by -5 gives -4. Therefore, the correct solution is x < -4.
+
+Option 2 is incorrect because the inequality sign was not reversed after dividing by -5. This is a common mistake. Option 3 is incorrect because of an arithmetic error; 20 divided by -5 is -4, not 4. Option 4 is incorrect due to both errors: the arithmetic is wrong, and the inequality sign was not reversed.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Basic_Inequalities_1766423288328.png?
+53.0,Inequalities,Basic Inequalities,medium,"Given the inequalities for variables x and y and the expression E as shown in the image, which of the following options correctly represents the range of possible values for E?",Basic Inequalities_1766423361558.png,"{""1"":""-32 = E < 8"",""2"":""-32 < E = 8"",""3"":""-24 < E < 16"",""4"":""-24 < E = 0""}",1.0,"The correct option is 1.
+
+To find the range of E = 2y - 4x, we first need to find the ranges for the terms 2y and -4x individually and then add them.
+
+First, let's find the range for the term '-4x'. We are given -3 < x = 5. To get -4x, we multiply the inequality by -4. When multiplying an inequality by a negative number, we must reverse the inequality signs. So, (-3) * (-4) > -4x = 5 * (-4), which simplifies to 12 > -4x = -20. Writing this in the standard 'less than' format gives -20 = -4x < 12.
+
+Next, let's find the range for the term '2y'. We are given -6 = y < -2. Multiplying by 2 (a positive number) does not change the inequality signs. So, (-6) * 2 = 2y < (-2) * 2, which simplifies to -12 = 2y < -4.
+
+Finally, we add the two resulting inequalities to find the range of E = 2y - 4x. We add the lower bounds together and the upper bounds together: (-20) + (-12) = -4x + 2y < 12 + (-4). This simplifies to -32 = 2y - 4x < 8, which means -32 = E < 8.
+
+Option 2 is incorrect because it confuses the strict (<) and non-strict (=) bounds. The value E = -32 is attainable when y = -6 and x = 5 (both are allowed), so the lower bound must be inclusive (=). The value E = 8 would require y = -2 and x = -3 (neither of which are allowed by the original inequalities), so the upper bound must be exclusive (<).
+
+Option 3 is incorrect. It represents the range for the expression 2y + 4x. The range for 4x is -12 < 4x = 20. Adding this to the range for 2y gives -24 < 2y + 4x < 16.
+
+Option 4 is incorrect and likely arises from an invalid method of calculation, such as subtracting the endpoints of the ranges for 2y and 4x, which is not a valid operation.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Basic_Inequalities_1766423361558.png?
+54.0,Inequalities,Basic Inequalities,hard,"Let x, y, and z be real numbers that satisfy the set of inequalities shown in the image. Let E be the expression x^2 - yz. If the set of all possible values of E forms an interval (a, b], what is the value of b - a?",Basic Inequalities_1766423471891.png,"{""1"":""66"",""2"":""36"",""3"":""55"",""4"":""44""}",1.0,"The correct option is 1. The solution requires finding the range for x, y, and z, and then using those to find the range of the expression E = x^2 - yz.
+
+First, we determine the interval for each variable:
+For x: The inequality is |x - 3| = 2. This is equivalent to -2 = x - 3 = 2. Adding 3 to all parts gives 1 = x = 5.
+For y: The inequality is |2y - 7| = 5. This is equivalent to -5 = 2y - 7 = 5. Adding 7 to all parts gives 2 = 2y = 12. Dividing by 2 gives 1 = y = 6.
+For z: The inequality is -4 = z + 1 < 3. Subtracting 1 from all parts gives -5 = z < 2.
+
+Next, we find the range for the terms in the expression E = x^2 - yz.
+For x^2: Since 1 = x = 5, and x is in a positive interval, we can square the endpoints to get the range for x^2, which is 1^2 = x^2 = 5^2, so 1 = x^2 = 25.
+
+For yz: This is the trickiest part. We have 1 = y = 6 and -5 = z < 2. To find the range of the product, we check the products of the endpoints: 1*(-5) = -5, 1*2 = 2, 6*(-5) = -30, 6*2 = 12. The minimum of these is -30, and the maximum is 12. The minimum value, -30, is achieved when y=6 and z=-5. The maximum value, 12, would be achieved if y=6 and z=2, but z cannot be 2 (z < 2). Thus, yz is strictly less than 12. The range for yz is [-30, 12).
+
+Now, we find the range for E = x^2 - yz. This is equivalent to finding the range of x^2 + (-yz).
+The range for -yz is obtained by multiplying the interval [-30, 12) by -1 and flipping the inequality signs and endpoints: -12 < -yz = 30.
+
+To find the range of E, we add the corresponding bounds of x^2 and -yz:
+Lower bound of E = (Lower bound of x^2) + (Lower bound of -yz) = 1 + (-12) = -11. Since -12 is not included in the range of -yz, -11 is not included in the range of E. So, E > -11.
+Upper bound of E = (Upper bound of x^2) + (Upper bound of -yz) = 25 + 30 = 55. This value is attainable (e.g., when x=5, y=6, z=-5). So, E = 55.
+
+Therefore, the set of all possible values for E is the interval (-11, 55]. This matches the given form (a, b], where a = -11 and b = 55. The question asks for the value of b - a, which is 55 - (-11) = 55 + 11 = 66.
+
+Option 2 (36) is incorrect. This might result from incorrectly assuming z is non-negative (0 = z < 2), leading to a range for yz of [0, 12) and a final range for E of (-11, 25], giving a length of 36.
+Option 3 (55) is incorrect. This is the maximum value of the expression, b, but not the length of the interval, b-a.
+Option 4 (44) is incorrect. This might be a calculation error, such as 55 - 11 = 44, instead of 55 - (-11).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Basic_Inequalities_1766423471891.png?
+55.0,Inequalities,Linear Inequalities,easy,Find the solution set for the linear inequality shown in the image.,Linear Inequalities_1766423501458.png,"{""1"":""x = -7"",""2"":""x = -7"",""3"":""x = 7"",""4"":""x = 7""}",1.0,"The correct option is 1.
+
+The given inequality is -6x = 42. To solve for x, we need to isolate it. This can be done by dividing both sides of the inequality by -6. A critical rule in inequalities is that when you multiply or divide both sides by a negative number, you must reverse the direction of the inequality sign. Therefore, the '=' (less than or equal to) sign becomes a '=' (greater than or equal to) sign. The calculation is x = (42 / -6), which simplifies to x = -7.
+
+Option 2, x = -7, is incorrect because the inequality sign was not reversed after dividing by the negative number -6. Option 3, x = 7, is incorrect due to a sign error in the division of 42 by -6. Option 4, x = 7, is incorrect due to both errors: failing to reverse the inequality sign and making a sign error in the division.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Linear_Inequalities_1766423501458.png?
+56.0,Inequalities,Linear Inequalities,medium,Find the range of values for 'x' that satisfies the inequality shown.,Linear Inequalities_1766423548276.png,"{""1"":""-4 < x < 3"",""2"":""x > 3"",""3"":""x < -4"",""4"":""-4 < x < 2""}",1.0,"To solve the compound inequality, we must isolate 'x' in the middle. First, subtract 5 from all three parts of the inequality. This gives: -1 - 5 < -2x < 13 - 5, which simplifies to -6 < -2x < 8. The next step is to divide all parts by -2 to solve for 'x'. A critical rule in inequalities is that when multiplying or dividing by a negative number, the direction of the inequality signs must be reversed. So, dividing by -2 and flipping the signs gives: (-6)/(-2) > x > 8/(-2). This simplifies to 3 > x > -4. To write this in the standard form with the smaller number on the left, we rearrange it as -4 < x < 3. Therefore, the correct range for x is given in option 1.
+
+Option 2, x > 3, is incorrect. It arises from making a mistake when solving the left part of the inequality, -6 < -2x, and forgetting to flip the sign, resulting in 3 < x.
+
+Option 3, x < -4, is incorrect. This error occurs when solving the right part of the inequality, -2x < 8, and forgetting to flip the sign, leading to x < -4.
+
+Option 4, -4 < x < 2, is incorrect. This is the result of an arithmetic error in the first step. If one calculates -1 - 5 as -4 instead of -6, the inequality becomes -4 < -2x < 8. Solving this correctly would lead to -4 < x < 2.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Linear_Inequalities_1766423548276.png?
+57.0,Inequalities,Linear Inequalities,hard,"Consider the system of linear inequalities shown in the image, where 'k' is a real parameter. Determine the set of all real values of 'k' for which the solution set for 'x' contains the entire interval [1, 2].",Linear Inequalities_1766423590654.png,"{""1"":""k = 19/6"",""2"":""k = 4/13"",""3"":""4/13 = k = 19/6"",""4"":""k = 4/13""}",1.0,"The correct option is 1.
+
+First, we must solve each inequality for 'x' in terms of 'k'.
+
+For the first inequality:
+Multiply by the LCM of the denominators (2, 4, 3), which is 12.
+6(x - k) + 3(3x - 1) < 4x
+6x - 6k + 9x - 3 < 4x
+15x - 6k - 3 < 4x
+11x < 6k + 3
+x < (6k + 3) / 11
+
+For the second inequality:
+Multiply by the LCM of the denominators (3, 2), which is 6.
+2(4x + 5k) > 3(2x - k) + 6(1)
+8x + 10k > 6x - 3k + 6
+2x > -13k + 6
+x > (-13k + 6) / 2
+
+Combining these two results, the solution set for 'x' is the open interval ((-13k + 6) / 2, (6k + 3) / 11).
+
+For this solution interval to contain the entire closed interval [1, 2], two conditions must be met simultaneously:
+The lower bound of the solution must be less than or equal to 1, AND the upper bound must be greater than or equal to 2.
+
+Condition 1: (-13k + 6) / 2 = 1
+-13k + 6 = 2
+-13k = -4
+13k = 4 (multiplying by -1 reverses the inequality sign)
+k = 4/13
+
+Condition 2: (6k + 3) / 11 = 2
+6k + 3 = 22
+6k = 19
+k = 19/6
+
+For the solution set to contain [1, 2], 'k' must satisfy both k = 4/13 and k = 19/6. To satisfy both, 'k' must be greater than or equal to the larger of the two values. Since 19/6 ˜ 3.17 and 4/13 ˜ 0.31, the stricter condition is k = 19/6.
+
+Option 2 is incorrect because satisfying k = 4/13 only ensures the lower bound is correct; it does not guarantee the upper bound is high enough to include 2. For instance, if k = 1 (which is = 4/13), the solution interval for x is approximately (-3.5, 0.82), which does not contain [1, 2].
+
+Option 3 is incorrect. This range would imply that k is bounded from above, which is not the case. It is a common mistake made by incorrectly combining the two conditions k = 4/13 and k = 19/6.
+
+Option 4 is incorrect. This range results from making an error in reversing the inequality sign when solving -13k = -4.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Linear_Inequalities_1766423590654.png?
+58.0,Inequalities,Quadratic Inequalities,easy,Find the solution set for the quadratic inequality shown in the image.,Quadratic Inequalities_1766423622425.png,"{""1"":""x ? (3, 5)"",""2"":""x ? (-8, 3) ? (5, 8)"",""3"":""x ? [3, 5]"",""4"":""x ? (-8, 3] ? [5, 8)""}",1.0,"The correct answer is option 1. The inequality is x² - 8x + 15 < 0. First, we find the roots of the corresponding equation x² - 8x + 15 = 0. Factoring the quadratic expression gives (x - 3)(x - 5) = 0, so the roots are x = 3 and x = 5. Since the coefficient of the x² term is positive, the parabola opens upwards. The inequality asks for the values of x where the expression is less than 0, which corresponds to the region where the parabola is below the x-axis. This occurs between the roots. Therefore, the solution is 3 < x < 5, which is represented by the interval (3, 5).
+
+Option 2, x ? (-8, 3) ? (5, 8), is the solution for the inequality x² - 8x + 15 > 0.
+
+Option 3, x ? [3, 5], would be the solution if the inequality was non-strict, i.e., x² - 8x + 15 = 0.
+
+Option 4, x ? (-8, 3] ? [5, 8), would be the solution for the inequality x² - 8x + 15 = 0.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Quadratic_Inequalities_1766423622425.png?
+59.0,Inequalities,Quadratic Inequalities,medium,Find the set of all real values of x that satisfy the inequality shown in the image.,Quadratic Inequalities_1766423655571.png,"{""1"":""x ? [1, 5]"",""2"":""x ? (-8, 1] ? [5, 8)"",""3"":""x ? (1, 5)"",""4"":""x ? [-5, -1]""}",1.0,"The correct option is 1.
+
+First, rearrange the inequality to bring all terms to one side, forming a standard quadratic inequality. Starting with the given expression, we subtract (x^2 + x - 2) from both sides: (2x^2 - 5x + 3) - (x^2 + x - 2) = 0. This simplifies to x^2 - 6x + 5 = 0.
+
+Next, find the roots of the corresponding quadratic equation x^2 - 6x + 5 = 0. This equation can be factored as (x - 1)(x - 5) = 0. The roots are x = 1 and x = 5. These are the critical points that divide the number line into three intervals: (-8, 1), (1, 5), and (5, 8).
+
+We need to find where the expression (x - 1)(x - 5) is less than or equal to zero. The graph of y = x^2 - 6x + 5 is an upward-opening parabola. Therefore, the expression is negative or zero between its roots. This means the inequality is satisfied for 1 = x = 5. In interval notation, this is [1, 5].
+
+Option 2 is incorrect; it represents the solution to the opposite inequality, x^2 - 6x + 5 = 0. Option 3 is incorrect because it excludes the endpoints x=1 and x=5, whereas the 'less than or equal to' sign (=) means the endpoints must be included. Option 4 is incorrect and likely results from sign errors during the factorization of the quadratic, leading to incorrect roots of -1 and -5.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Quadratic_Inequalities_1766423655571.png?
+60.0,Inequalities,Quadratic Inequalities,hard,For what set of real values of the parameter `k` does the inequality shown in the image hold true for all real values of `x`?,Quadratic Inequalities_1766423717817.png,"{""1"":""k ? (-8, -3) ? (1, 8)"",""2"":""k ? (-8, -3) ? [1, 8)"",""3"":""k ? (-3, -1)"",""4"":""k ? (-8, -1) ? (1, 8)""}",2.0,"Let the given inequality be f(x) > 0, where f(x) = (k^2 - 1)x^2 + 2(k - 1)x + 2.
+
+To have this inequality hold for all real x, we must consider two cases based on the coefficient of x^2.
+
+Case 1: The coefficient of x^2 is zero.
+This occurs when k^2 - 1 = 0, which means k = 1 or k = -1.
+If k = 1, the inequality becomes 0*x^2 + 2(1 - 1)x + 2 > 0, which simplifies to 2 > 0. This is always true. Thus, k = 1 is part of the solution set.
+If k = -1, the inequality becomes 0*x^2 + 2(-1 - 1)x + 2 > 0, which simplifies to -4x + 2 > 0, or x < 1/2. This is not true for all real values of x, so k = -1 is not a solution.
+
+Case 2: The coefficient of x^2 is not zero.
+For a quadratic expression Ax^2 + Bx + C to be always positive, two conditions must be met: the parabola must open upwards (A > 0) and it must not have real roots (Discriminant D < 0).
+
+Condition (a): The coefficient of x^2 must be positive.
+A = k^2 - 1 > 0 implies (k - 1)(k + 1) > 0. This inequality holds for k < -1 or k > 1. So, k ? (-8, -1) ? (1, 8).
+
+Condition (b): The discriminant must be negative.
+D = B^2 - 4AC < 0.
+Here, A = k^2 - 1, B = 2(k - 1), C = 2.
+D = (2(k - 1))^2 - 4(k^2 - 1)(2) = 4(k - 1)^2 - 8(k^2 - 1)
+D = 4(k^2 - 2k + 1) - 8k^2 + 8 = 4k^2 - 8k + 4 - 8k^2 + 8 = -4k^2 - 8k + 12.
+We need D < 0, so -4k^2 - 8k + 12 < 0. Dividing by -4 and reversing the inequality sign, we get k^2 + 2k - 3 > 0.
+Factoring the quadratic, we get (k + 3)(k - 1) > 0. This inequality holds for k < -3 or k > 1. So, k ? (-8, -3) ? (1, 8).
+
+For the quadratic case to hold, both conditions (a) and (b) must be satisfied. We find the intersection of their solution sets:
+Intersection of {k ? (-8, -1) ? (1, 8)} and {k ? (-8, -3) ? (1, 8)} is k ? (-8, -3) ? (1, 8).
+
+Finally, we combine the solutions from both Case 1 and Case 2. The total set of values for k is the union of the solution from the linear case {1} and the solution from the quadratic case (-8, -3) ? (1, 8). The union is k ? (-8, -3) ? [1, 8).
+
+Option 1 is incorrect because it is the solution for the quadratic case only and omits the valid linear case where k = 1.
+Option 3 is incorrect. It would be obtained by incorrectly solving the discriminant inequality k^2 + 2k - 3 > 0 as -3 < k < 1, and then intersecting this with k < -1 from the first condition, yielding (-3, -1).
+Option 4 is incorrect because it represents the solution to only the first condition (A > 0) and ignores the discriminant condition (D < 0).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Quadratic_Inequalities_1766423717817.png?
+61.0,Inequalities,Inequalities on Number Line,easy,Which number is a part of the solution set for the inequality shown in the image?,Inequalities on Number Line_1766423785059.png,"{""1"":""-3"",""2"":""0"",""3"":""-4"",""4"":""4""}",3.0,"The correct option is 3.
+
+The inequality shown in the image is x = -4. This statement means that 'x' can be any number that is less than or equal to -4. On a number line, this corresponds to the point -4 and all points to its left.
+
+Option 1, -3, is incorrect. On a number line, -3 is to the right of -4, which means -3 is greater than -4. It does not satisfy the inequality.
+
+Option 2, 0, is incorrect. 0 is to the right of -4 on the number line, so it is greater than -4 and does not satisfy the inequality.
+
+Option 3, -4, is correct. The 'or equal to' part of the '=' symbol means that -4 itself is included in the solution set. The statement -4 = -4 is true.
+
+Option 4, 4, is incorrect. 4 is a positive number and is much greater than -4, so it does not satisfy the inequality.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequalities_on_Number_Line_1766423785059.png?
+62.0,Inequalities,Inequalities on Number Line,medium,A variable 'x' must satisfy both inequalities shown in the image. How many integer values of 'x' satisfy both conditions simultaneously?,Inequalities on Number Line_1766423817801.png,"{""1"":""6"",""2"":""5"",""3"":""7"",""4"":""9""}",1.0,"First, let's analyze each inequality to find the set of integers it represents.
+
+The first inequality is approximately -3.67 < x = 5. The integers that satisfy this condition are {-3, -2, -1, 0, 1, 2, 3, 4, 5}.
+
+The second inequality is -2 = x < 3.25. The integers that satisfy this condition are {-2, -1, 0, 1, 2, 3}.
+
+The question asks for the integers that satisfy BOTH conditions. This means we need to find the intersection of the two sets of integers. The common integers are {-2, -1, 0, 1, 2, 3}. Counting these integers, we find there are 6 such values. Therefore, 6 is the correct answer.
+
+Option 2, 5, is incorrect. This would be the result if one mistakenly treated the condition -2 = x as -2 < x, thus excluding -2 from the final set.
+
+Option 3, 7, is incorrect. This could be obtained by incorrectly interpreting -11/3 < x as x = -3, which would incorrectly include -3 in the final set of common integers {-3, -2, -1, 0, 1, 2, 3}.
+
+Option 4, 9, is incorrect. This is the total number of integers satisfying only the first inequality (-3, -2, -1, 0, 1, 2, 3, 4, 5) and completely ignores the constraint imposed by the second inequality.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequalities_on_Number_Line_1766423817801.png?
+63.0,Inequalities,Inequalities on Number Line,hard,"Set P is the solution set for the compound inequality shown in the image. Set Q consists of all integers `y` such that `y` is in the interval `[-4, 10)` but `y` is not in Set P. What is the sum of all the elements in Set Q?",Inequalities on Number Line_1766423865271.png,"{""1"":""44"",""2"":""-9"",""3"":""39"",""4"":""54""}",1.0,"Option 1 is correct. First, we need to find the solution set P by solving the two linear inequalities.
+
+For the first inequality: `(3x - 7) / 4 < x - 5`. Multiplying by 4 gives `3x - 7 < 4x - 20`. Rearranging the terms, we get `13 < x`, or `x > 13`.
+
+For the second inequality: `2(x + 1) >= 5x - 1`. Expanding the left side gives `2x + 2 >= 5x - 1`. Rearranging the terms, we get `3 >= 3x`, which simplifies to `1 >= x`, or `x <= 1`.
+
+Since the compound inequality uses the word 'OR', Set P is the union of these two solutions. On a number line, Set P includes all numbers less than or equal to 1, and all numbers greater than 13. So, `P = (-8, 1] U (13, 8)`.
+
+The question asks for integers `y` that are NOT in Set P. This corresponds to the complement of Set P on the number line, which is the interval between 1 and 13. Since P includes 1 (`x <= 1`) and excludes 13 (`x > 13`), the complement is `(1, 13]`.
+
+Set Q consists of integers `y` that are in the interval `[-4, 10)` and also in the interval `(1, 13]`. We need to find the integers in the intersection of these two sets. The integers in `[-4, 10)` are `{-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}`. The integers in `(1, 13]` are `{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}`. The common integers, which form Set Q, are `{2, 3, 4, 5, 6, 7, 8, 9}`.
+
+The sum of the elements in Set Q is `2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 = 44`.
+
+Option 2 is incorrect. -9 is the sum of integers that are IN Set P and also in `[-4, 10)`. These integers are `{-4, -3, -2, -1, 0, 1}`, which sum to -9. This is the opposite of what was asked.
+Option 3 is incorrect. 39 is the sum of all integers in the initial range `[-4, 10)`, which are `{-4, -3, ..., 9}`. This would be the answer if Set P was empty, which is not the case.
+Option 4 is incorrect. 54 is obtained if one incorrectly includes 10 in the final set of integers (e.g., by misinterpreting `[-4, 10)` as `[-4, 10]`) and adds it to the correct sum: `44 + 10 = 54`.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequalities_on_Number_Line_1766423865271.png?
+64.0,Inequalities,Inequality Word Problems,easy,A movie theater has a maximum capacity of 250 people. Let 'p' represent the number of people in the theater. Which inequality correctly represents the number of people allowed in the theater at any given time?,no image,"{""1"":""p > 250"",""2"":""p < 250"",""3"":""p = 250"",""4"":""p = 250""}",4.0,"The correct option is 4. The phrase 'maximum capacity of 250' means that the number of people, 'p', can be 250 or any number less than 250. This condition is correctly represented by the inequality 'p = 250', which reads as 'p is less than or equal to 250'.
+
+Option 1, p > 250, is incorrect as it represents having more than 250 people, which exceeds the maximum capacity. Option 2, p < 250, is incorrect because it excludes the possibility of the theater being exactly at its maximum capacity of 250 people. Option 3, p = 250, is incorrect as it represents having 250 or more people, which violates the capacity limit.",
+65.0,Inequalities,Inequality Word Problems,medium,"A company manufactures a widget with a fixed monthly cost of $12,000. The production cost for each widget is $40, and it is sold for $90. The company's goal is to achieve a monthly profit that is at least $8,000 but strictly less than $23,000. What is the maximum number of widgets the company can produce and sell to stay within this profit range?",no image,"{""1"":""400"",""2"":""699"",""3"":""700"",""4"":""399""}",2.0,"Let 'x' be the number of widgets produced and sold.
+The total revenue is the selling price per widget multiplied by the number of widgets: R(x) = 90x.
+The total cost is the sum of the fixed cost and the total variable cost: C(x) = 12000 + 40x.
+The profit, P(x), is the difference between total revenue and total cost: P(x) = R(x) - C(x) = 90x - (12000 + 40x) = 50x - 12000.
+
+The problem states that the profit must be at least $8,000 but strictly less than $23,000. This can be written as the compound inequality:
+8000 = P(x) < 23000
+Substitute the expression for profit:
+8000 = 50x - 12000 < 23000
+
+To solve for x, first add 12,000 to all parts of the inequality:
+8000 + 12000 = 50x < 23000 + 12000
+20000 = 50x < 35000
+
+Next, divide all parts by 50:
+20000 / 50 = x < 35000 / 50
+400 = x < 700
+
+The inequality shows that the number of widgets, x, must be greater than or equal to 400 and strictly less than 700. The question asks for the maximum number of widgets. Since x must be an integer and less than 700, the maximum possible integer value for x is 699.
+
+Option 1 (400) is incorrect because it represents the minimum number of widgets required, not the maximum.
+Option 3 (700) is incorrect because the profit must be strictly less than $23,000, which means x must be strictly less than 700. Selling 700 widgets would result in a profit of exactly $23,000, which is not allowed.
+Option 4 (399) is incorrect. This would be the result if one made an off-by-one error on the lower bound, or miscalculated the range.",
+66.0,Inequalities,Inequality Word Problems,hard,"An advertising agency is planning a campaign for a client. The plan involves purchasing TV ad slots, represented by `t`, and Radio ad slots, represented by `r`. Both `t` and `r` must be non-negative integers. The campaign is subject to a set of constraints on budget, audience reach, and platform mix, which are defined by the system of inequalities shown in the image. What is the minimum number of Radio ad slots (`r`) that the agency must purchase to satisfy all conditions?",Inequality Word Problems_1766423999037.png,"{""1"":""6"",""2"":""7"",""3"":""8"",""4"":""9""}",3.0,"The correct answer is 8. To find the minimum value of `r`, we must analyze the given system of inequalities:
+1) `3t + r <= 30`
+2) `5t + 2r >= 40`
+3) `t >= 4`
+4) `2r >= 3t`
+
+We need to find a feasible region for `r` by expressing `t` in terms of `r` from each inequality.
+From (1): `3t <= 30 - r` => `t <= (30 - r) / 3`
+From (2): `5t >= 40 - 2r` => `t >= (40 - 2r) / 5`
+From (3): `t >= 4`
+From (4): `t <= 2r / 3`
+
+For a solution for `t` to exist, the lower bound for `t` must be less than or equal to the upper bound for `t`. The lower bound is the maximum of the two individual lower bounds, and the upper bound is the minimum of the two individual upper bounds.
+So, `max(4, (40 - 2r) / 5) <= t <= min((30 - r) / 3, 2r / 3)`.
+
+This implies that the maximum of the lower bounds must be less than or equal to the minimum of the upper bounds. This gives us four conditions to satisfy:
+a) `4 <= (30 - r) / 3` => `12 <= 30 - r` => `r <= 18`
+b) `4 <= 2r / 3` => `12 <= 2r` => `r >= 6`
+c) `(40 - 2r) / 5 <= (30 - r) / 3` => `120 - 6r <= 150 - 5r` => `-30 <= r` (always true since `r` must be non-negative)
+d) `(40 - 2r) / 5 <= 2r / 3` => `120 - 6r <= 10r` => `120 <= 16r` => `r >= 7.5`
+
+Combining all conditions on `r`: we need `r >= 6`, `r >= 7.5`, and `r <= 18`. The most restrictive combination is `7.5 <= r <= 18`. Since `r` must be an integer, the minimum possible value for `r` is 8. To confirm, if `r = 8`, the inequality for `t` becomes `max(4, 4.8) <= t <= min(7.33, 5.33)`, which simplifies to `4.8 <= t <= 5.33`. The integer `t=5` satisfies this, so a solution exists for `r=8`.
+
+Option 1 (6) is incorrect because `r=6` violates the condition `r >= 7.5`. If `r=6`, there is no integer `t` that satisfies all conditions.
+Option 2 (7) is incorrect because `r=7` also violates the condition `r >= 7.5`. This is a common error if one rounds 7.5 down.
+Option 4 (9) is incorrect because while `r=9` is a possible value (it allows for integer solutions for `t`), it is not the minimum possible value. The question specifically asks for the minimum.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequality_Word_Problems_1766423999037.png?
+67.0,Inequalities,Inequalities with Modulus,easy,Find the range of values for x that satisfies the inequality shown in the image.,Inequalities with Modulus_1766424030231.png,"{""1"":""2 < x < 8"",""2"":""x < 2 or x > 8"",""3"":""-8 < x < -2"",""4"":""-2 < x < 8""}",1.0,"The correct option is 1.
+
+The given inequality is |x - 5| < 3. According to the properties of modulus inequalities, an inequality of the form |A| < B is equivalent to -B < A < B. Applying this rule, we get -3 < x - 5 < 3. To find the range for x, we need to isolate x in the middle. We can do this by adding 5 to all three parts of the inequality: -3 + 5 < x - 5 + 5 < 3 + 5. This simplifies to 2 < x < 8.
+
+Option 2 is incorrect. The range 'x < 2 or x > 8' is the solution for the inequality |x - 5| > 3, which is a common mistake of applying the wrong rule.
+
+Option 3 is incorrect. The range '-8 < x < -2' would be the result if one mistakenly solved the inequality |x + 5| < 3, which is not the given problem.
+
+Option 4 is incorrect. This range likely arises from a calculation error when solving for the lower bound, for instance, calculating 3 - 5 instead of -3 + 5, which would incorrectly yield -2.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequalities_with_Modulus_1766424030231.png?
+68.0,Inequalities,Inequalities with Modulus,medium,Find the complete solution set for x that satisfies the inequality shown.,Inequalities with Modulus_1766424065448.png,"{""1"":""$x \\in [-6, 0] \\cup [10, 16]$"",""2"":""$x \\in [0, 10]$"",""3"":""$x \\in [-6, 16]$"",""4"":""$x \\in [-6, 0]$""}",1.0,"The correct option is 1.
+
+The given inequality is $||x - 5| - 8| \le 3$. Based on the property $|y| \le a \iff -a \le y \le a$, we can rewrite this as: $-3 \le |x - 5| - 8 \le 3$. Adding 8 to all parts of the inequality gives: $5 \le |x - 5| \le 11$. This is a compound inequality that can be broken into two separate conditions: (i) $|x - 5| \ge 5$ and (ii) $|x - 5| \le 11$. For (i), $|x - 5| \ge 5$ implies $x - 5 \ge 5$ or $x - 5 \le -5$, which gives $x \ge 10$ or $x \le 0$. This solution is $(-\infty, 0] \cup [10, \infty)$. For (ii), $|x - 5| \le 11$ implies $-11 \le x - 5 \le 11$, which gives $-6 \le x \le 16$. This solution is $[-6, 16]$. The final solution is the intersection of these two sets. The intersection of $(-\infty, 0] \cup [10, \infty)$ and $[-6, 16]$ is $[-6, 0] \cup [10, 16]$.
+
+Option 2 is incorrect. This range, $[0, 10]$, is obtained by incorrectly solving the inequality $|x - 5| \ge 5$ as $|x - 5| \le 5$, which is a common mistake.
+
+Option 3 is incorrect. The range $[-6, 16]$ is the solution to only one part of the compound inequality, $|x - 5| \le 11$. It fails to account for the second condition, $|x - 5| \ge 5$.
+
+Option 4 is incorrect. The range $[-6, 0]$ is only one of the two intervals that make up the complete solution. It omits the second interval, $[10, 16]$.",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequalities_with_Modulus_1766424065448.png?
+69.0,Inequalities,Inequalities with Modulus,hard,Consider the inequality shown in the image. What is the sum of all integer values of 'x' for which this inequality holds true?,Inequalities with Modulus_1766424129569.png,"{""1"":""8"",""2"":""10"",""3"":""7"",""4"":""3""}",1.0,"1 is the correct option.
+The given inequality is | |x - 3| - 5 | / |x - 2| > 1. First, we must note that the denominator cannot be zero, so x ? 2. We can multiply both sides by |x - 2| (since it is non-negative and not zero) to get | |x - 3| - 5 | > |x - 2|.
+
+Since both sides of the inequality are non-negative, we can square both sides: ( |x - 3| - 5 )² > (x - 2)². Rearranging this gives ( |x - 3| - 5 )² - (x - 2)² > 0. Using the difference of squares formula a² - b² = (a - b)(a + b), we get:
+( |x - 3| - 5 - (x - 2) ) * ( |x - 3| - 5 + (x - 2) ) > 0
+( |x - 3| - x - 3 ) * ( |x - 3| + x - 7 ) > 0
+
+We now solve this by considering two cases for |x - 3|:
+Case 1: x = 3. In this case, |x - 3| = x - 3.
+The inequality becomes: ( (x - 3) - x - 3 ) * ( (x - 3) + x - 7 ) > 0, which simplifies to (-6) * (2x - 10) > 0. Dividing by -6 and reversing the inequality sign gives 2x - 10 < 0, so 2x < 10, and x < 5. The solution for this case, intersecting x = 3 with x < 5, is [3, 5). The integers in this interval are 3 and 4.
+
+Case 2: x < 3. In this case, |x - 3| = -(x - 3) = 3 - x.
+The inequality becomes: ( (3 - x) - x - 3 ) * ( (3 - x) + x - 7 ) > 0, which simplifies to (-2x) * (-4) > 0. This gives 8x > 0, so x > 0. The solution for this case, intersecting x < 3 with x > 0, is (0, 3).
+
+Combining the solutions from both cases, we get the interval [3, 5) U (0, 3). We must remember the initial condition that x ? 2. So the final solution set is (0, 2) U (2, 5). The integers in this set are 1, 3, and 4. The sum of these integers is 1 + 3 + 4 = 8.
+
+Option 2, 10, is incorrect; it results from incorrectly including x = 2 in the solution set (1 + 2 + 3 + 4). Option 3, 7, is incorrect; it is the sum of integers from only Case 1 (3 + 4), ignoring the solutions from Case 2. Option 4, 3, is incorrect; it could be obtained by considering only Case 2 and incorrectly including x=2 (1+2).",https://cripzwtfxuxeyfpfvqrd.supabase.co/storage/v1/object/public/question-images/questions/Inequalities_with_Modulus_1766424129569.png?
+,,,,,,,,,
+,,,,,,,,,

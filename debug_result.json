@@ -1,0 +1,63 @@
+{
+  "section": {
+    "id": "75f8be8b-9697-45e6-a29a-602b1a6c7d5e",
+    "title": "Quantitative (Medium)"
+  },
+  "questions": [
+    {
+      "id": "1733fd8e-b330-411a-990a-c49b0ba47556",
+      "text": "What is the sum of the place value and the face value of the digit 7 in the number 9753?",
+      "type": "single_choice"
+    },
+    {
+      "id": "d8f892f2-86dc-41d3-9c65-c547452b874d",
+      "text": "Two values, A and B, are defined by the expressions shown in the image. What is the result of the operation A - B?",
+      "type": "single_choice"
+    },
+    {
+      "id": "1827e8f2-b1e3-40e7-b847-d1889ee0c0cf",
+      "text": "A three-digit number is defined as 'balanced' if it satisfies the condition shown in the image, where 'a' is the hundreds digit, 'b' is the tens digit, and 'c' is the units digit. The digits are not necessarily distinct. What is the sum of all such balanced three-digit numbers?",
+      "type": "single_choice"
+    },
+    {
+      "id": "1314d6b7-e801-4fbf-b9ca-abd022d7a2d2",
+      "text": "What single digit should replace the asterisk (*) in the number shown in the image to make the number exactly divisible by 9?",
+      "type": "single_choice"
+    },
+    {
+      "id": "7db0dacc-7927-488f-8fd6-00e1437e185e",
+      "text": "A 10-digit number contains two unknown digits, x and y. Using the condition provided in the image, find the value of the expression also shown.",
+      "type": "single_choice"
+    },
+    {
+      "id": "995aba21-b679-4c0e-a2f2-5d6e228b0bde",
+      "text": "A seven-digit number N is represented as 8A09B1C. This number is known to be perfectly divisible by 792. If A, B, and C are single-digit integers, what is the value of the expression shown in the image?",
+      "type": "single_choice"
+    },
+    {
+      "id": "d7dc5375-9587-4898-9f33-bb47374227f7",
+      "text": "What is the unit digit of the result of the calculation shown in the image?",
+      "type": "single_choice"
+    },
+    {
+      "id": "9ada1925-441e-48d1-8b11-a4a5c0a3bbd2",
+      "text": "What is the unit digit of the final result of the expression shown below?",
+      "type": "single_choice"
+    },
+    {
+      "id": "63ab6017-b5be-4999-8535-5f6c9b6f70f6",
+      "text": "What is the unit digit of the expression for X shown in the image?",
+      "type": "single_choice"
+    },
+    {
+      "id": "6a6b785a-6b31-4d4f-995b-fc4ea913e1dd",
+      "text": "When a positive integer is divided by a certain divisor, the remainder is 46. When twice that same integer is divided by the same divisor, the remainder is 37. What is the value of the divisor?",
+      "type": "single_choice"
+    }
+  ],
+  "sectionProblems": [],
+  "checkProblem": {
+    "id": "e628b3c3-875f-47cf-958b-6b9f52f8204a",
+    "title": "Sliding Window Median"
+  }
+}
