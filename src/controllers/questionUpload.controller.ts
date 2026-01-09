@@ -11,14 +11,21 @@ export const uploadQuestionsCSV = async (req: Request, res: Response) => {
             });
         }
 
-        // Get division from request body (sent from frontend)
-        const division = req.body.division;
+        // Get categorization from request body (sent from frontend)
+        const { division, subdivision, topic } = req.body;
 
         console.log(`\n📤 [UPLOAD_CSV] Processing file: ${req.file.originalname}`);
         console.log(`   Size: ${(req.file.size / 1024).toFixed(2)} KB`);
-        console.log(`   Division: ${division || "Not specified"}`);
+        console.log(`   Division (Main Type): ${division || "Not specified"}`);
+        console.log(`   Subdivision (Subtype): ${subdivision || "Not specified"}`);
+        console.log(`   Topic: ${topic || "Not specified"}`);
 
-        const summary = await questionUploadService.uploadCSV(req.file.buffer, division);
+        const summary = await questionUploadService.uploadCSV(
+            req.file.buffer,
+            division,
+            subdivision,
+            topic
+        );
 
         res.status(200).json({
             success: true,
@@ -44,14 +51,21 @@ export const uploadQuestionsZIP = async (req: Request, res: Response) => {
             });
         }
 
-        // Get division from request body (sent from frontend)
-        const division = req.body.division;
+        // Get categorization from request body
+        const { division, subdivision, topic } = req.body;
 
         console.log(`\n📤 [UPLOAD_ZIP] Processing file: ${req.file.originalname}`);
         console.log(`   Size: ${(req.file.size / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`   Division: ${division || "Not specified"}`);
+        console.log(`   Division (Main Type): ${division || "Not specified"}`);
+        console.log(`   Subdivision (Subtype): ${subdivision || "Not specified"}`);
+        console.log(`   Topic: ${topic || "Not specified"}`);
 
-        const summary = await questionUploadService.uploadZIP(req.file.buffer, division);
+        const summary = await questionUploadService.uploadZIP(
+            req.file.buffer,
+            division,
+            subdivision,
+            topic
+        );
 
         res.status(200).json({
             success: true,

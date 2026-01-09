@@ -56,6 +56,21 @@ export class AssessmentSession {
     @Column({ default: "active" })
     status: "active" | "completed" | "expired" | "terminated";
 
+    // 📸 Assessment-Specific Photo Storage
+    // These photos are captured during proctoring setup for THIS specific assessment
+    // This ensures each assessment has its own photo, preventing conflicts
+    @Column({ type: "text", nullable: true })
+    photoUrl: string | null; // Original photo URL from Supabase
+
+    @Column({ type: "text", nullable: true })
+    photoOptimizedUrl: string | null; // Optimized version
+
+    @Column({ type: "text", nullable: true })
+    photoThumbnailUrl: string | null; // Thumbnail version
+
+    @Column({ type: "jsonb", nullable: true })
+    faceDescriptor: any; // Face recognition data for this assessment
+
     @CreateDateColumn()
     createdAt: Date;
 }

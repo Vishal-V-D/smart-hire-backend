@@ -63,6 +63,10 @@ export class Question {
     @Column({ type: "text", nullable: true })
     codeStub: string;
 
+    // Pseudocode for questions that include pseudocode
+    @Column({ type: "text", nullable: true })
+    pseudocode: string;
+
     // Marks (optional, defaults to section's marksPerQuestion)
     @Column({ type: "int", nullable: true })
     marks: number;

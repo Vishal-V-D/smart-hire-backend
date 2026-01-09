@@ -8,6 +8,7 @@ import { ContestantProfile } from "../entities/ContestantProfile.entity";
 import { Assessment } from "../entities/Assessment.entity";
 import { User } from "../entities/user.entity";
 import { AssessmentInvitation } from "../entities/AssessmentInvitation.entity";
+import { AssessmentSection } from "../entities/AssessmentSection.entity";
 
 const submissionRepo = () => AppDataSource.getRepository(AssessmentSubmission);
 const answerRepo = () => AppDataSource.getRepository(AssessmentAnswer);
@@ -17,6 +18,7 @@ const profileRepo = () => AppDataSource.getRepository(ContestantProfile);
 const assessmentRepo = () => AppDataSource.getRepository(Assessment);
 const userRepo = () => AppDataSource.getRepository(User);
 const invitationRepo = () => AppDataSource.getRepository(AssessmentInvitation);
+const sectionRepo = () => AppDataSource.getRepository(AssessmentSection);
 
 // ============================================
 // INTERFACES
@@ -86,6 +88,10 @@ export interface ParticipantReport {
         mcqMaxScore: number;
         codingScore: number;
         codingMaxScore: number;
+        testCases?: {
+            passed: number;
+            total: number;
+        };
     };
 
     // Coding Details (per problem)
@@ -96,11 +102,19 @@ export interface ParticipantReport {
         code: string | null;
         passedTests: number;
         totalTests: number;
+        testCasesSummary: string; // e.g., "3/50" or "50/50"
         score: number;
         maxScore: number;
         status: string;
         executionTime?: string;
         memoryUsed?: number;
+        plagiarism?: {
+            similarityPercentage: number;
+            aiPercentage: number;
+            verdict: string;
+            matches: any[];
+            reportPath: string | null;
+        } | null;
     }[];
 
     // Violations Summary
@@ -273,6 +287,115 @@ export const getAssessmentReport = async (
     const stats = calculateAssessmentStats(participantReports);
     const violationStats = calculateViolationStats(participantReports);
 
+    // ============================================
+    // 📊 COMPREHENSIVE REPORT TABLE
+    // ============================================
+    try {
+        console.log(`\n╔════════════════════════════════════════════════════════════════════════════╗`);
+        console.log(`║                    📊 ASSESSMENT FINAL REPORT                              ║`);
+        console.log(`╚════════════════════════════════════════════════════════════════════════════╝`);
+        console.log(`\n📋 Assessment: ${assessment?.title || "Unknown"}`);
+        console.log(`👥 Total Participants: ${participantReports.length}`);
+        console.log(`📊 Average Score: ${(stats.averageScore || 0).toFixed(2)}%`);
+        console.log(`🏆 Highest Score: ${stats.highestScore || 0}`);
+        console.log(`📉 Lowest Score: ${stats.lowestScore || 0}`);
+
+        // Show each participant's report
+        participantReports.forEach((report, index) => {
+            console.log(`\n${'='.repeat(80)}`);
+            console.log(`🏅 RANK #${report.scores?.rank || index + 1} - ${report.registration?.fullName || "Unknown"}`);
+            console.log(`${'='.repeat(80)}`);
+            console.log(`📧 Email: ${report.registration?.email || "N/A"}`);
+            console.log(`🏫 College: ${report.registration?.college || "N/A"} | Dept: ${report.registration?.department || "N/A"}`);
+            const timeTaken = report.session?.totalTimeTaken ? Math.floor(report.session.totalTimeTaken / 60) : 0;
+            console.log(`⏱️  Time: ${timeTaken} min | Status: ${report.verdict?.status || "Unknown"}`);
+
+            console.log(`\n┌────────────────────────────────────────────────────────────────────────┐`);
+            console.log(`│                          📝 SECTION SCORES                              │`);
+            console.log(`├─────────────────────┬─────────┬─────────┬──────────┬──────────────────┤`);
+            console.log(`│ Section Name        │ Scored  │   Max   │   Type   │   Test Cases     │`);
+            console.log(`├─────────────────────┼─────────┼─────────┼──────────┼──────────────────┤`);
+
+            (report.scores?.sectionScores || []).forEach(section => {
+                const name = (section.sectionTitle || "Unknown").padEnd(19).substring(0, 19);
+                const scored = String((section.obtainedMarks || 0).toFixed(1)).padStart(7);
+                const max = String((section.totalMarks || 0).toFixed(1)).padStart(7);
+                const type = (section.sectionType || "").padEnd(8).substring(0, 8);
+
+                let testCases = "N/A";
+                if (section.sectionType === "coding" && report.codingProblems?.length > 0) {
+                    const sectionProblems = report.codingProblems.filter(cp =>
+                        cp.problemId // Filter by section if needed
+                    );
+                    if (sectionProblems.length > 0) {
+                        const totalPassed = sectionProblems.reduce((sum, cp) => sum + (cp.passedTests || 0), 0);
+                        const totalTests = sectionProblems.reduce((sum, cp) => sum + (cp.totalTests || 0), 0);
+                        testCases = `${totalPassed}/${totalTests}`;
+                    }
+                }
+                testCases = testCases.padStart(16);
+
+                console.log(`│ ${name} │ ${scored} │ ${max} │ ${type} │ ${testCases} │`);
+            });
+
+            console.log(`├─────────────────────┴─────────┴─────────┴──────────┴──────────────────┤`);
+            const total = (report.scores?.totalScore || 0).toFixed(2);
+            const max = (report.scores?.maxScore || 0).toFixed(2);
+            const pct = (report.scores?.percentage || 0).toFixed(2);
+            console.log(`│ 🎯 TOTAL: ${total}/${max} (${pct}%)`.padEnd(76) + `│`);
+            console.log(`└────────────────────────────────────────────────────────────────────────┘`);
+
+            // Coding Problems
+            if (report.codingProblems?.length > 0) {
+                console.log(`\n┌────────────────────────────────────────────────────────────────────────┐`);
+                console.log(`│                        💻 CODING PROBLEMS                               │`);
+                console.log(`├──────────────────────┬─────────┬─────────┬───────────────────────────┤`);
+                console.log(`│ Problem              │  Score  │   Max   │      Test Cases           │`);
+                console.log(`├──────────────────────┼─────────┼─────────┼───────────────────────────┤`);
+
+                report.codingProblems.forEach(cp => {
+                    const title = (cp.problemTitle || "Unknown").padEnd(20).substring(0, 20);
+                    const score = String((cp.score || 0).toFixed(1)).padStart(7);
+                    const max = String((cp.maxScore || 0).toFixed(1)).padStart(7);
+                    const testCases = (cp.testCasesSummary || "N/A").padStart(25);
+                    console.log(`│ ${title} │ ${score} │ ${max} │ ${testCases} │`);
+                });
+
+                console.log(`└──────────────────────┴─────────┴─────────┴───────────────────────────┘`);
+            }
+
+            // Plagiarism
+            if (report.codingProblems?.length > 0) {
+                console.log(`\n┌────────────────────────────────────────────────────────────────────────┐`);
+                console.log(`│                        🔍 PLAGIARISM ANALYSIS                           │`);
+                console.log(`├──────────────────────┬─────────┬─────────┬───────────────────────────┤`);
+                console.log(`│ Problem              │  Sim %  │  AI %   │        Verdict            │`);
+                console.log(`├──────────────────────┼─────────┼─────────┼───────────────────────────┤`);
+
+                report.codingProblems.forEach(cp => {
+                    const title = (cp.problemTitle || "Unknown").padEnd(20).substring(0, 20);
+                    const sim = cp.plagiarism ? String(cp.plagiarism.similarityPercentage).padStart(7) : "N/A".padStart(7);
+                    const ai = cp.plagiarism ? String(cp.plagiarism.aiPercentage).padStart(7) : "N/A".padStart(7);
+                    const verdict = (cp.plagiarism?.verdict || "N/A").padEnd(25).substring(0, 25);
+                    console.log(`│ ${title} │ ${sim} │ ${ai} │ ${verdict} │`);
+                });
+
+                console.log(`└──────────────────────┴─────────┴─────────┴───────────────────────────┘`);
+            }
+
+            // Violations
+            const vCount = report.violations?.totalCount || 0;
+            const risk = (report.violations?.riskLevel || "LOW").toUpperCase();
+            console.log(`\n⚠️  Violations: ${vCount} | Risk: ${risk}`);
+        });
+
+        console.log(`\n${'='.repeat(80)}`);
+        console.log(`✅ Assessment report generated successfully for ${participantReports.length} participants\n`);
+    } catch (err) {
+        console.error("❌ [REPORT] Error generating console report table:", err);
+        // Continue - don't fail request just because logs failed
+    }
+
     return {
         assessmentId,
         assessmentTitle: assessment.title,
@@ -368,14 +491,10 @@ const buildParticipantReport = async (
         }
     });
 
-    // Fetch user details
+    // Fetch user details - FRESH from database to get latest photo URLs
     const user = await userRepo().findOne({
         where: { id: userId }
     });
-
-    console.log(`\n📸 [Organizer Report] User: ${user?.username} (${user?.email})`);
-    console.log(`   -> DB photoUrl: ${user?.photoUrl}`);
-    console.log(`   -> DB photoOptimizedUrl: ${user?.photoOptimizedUrl}`);
 
     // Fetch session
     const session = submission.session || await sessionRepo().findOne({
@@ -400,28 +519,27 @@ const buildParticipantReport = async (
         order: { detectedAt: "DESC" }
     }) : [];
 
-    // Fetch coding answers
-    const codingAnswers = await answerRepo().find({
-        where: {
-            submissionId: submission.id,
-            problemId: Not(IsNull())
-        },
-        relations: ["problem"]
-    });
-
-    // Calculate section-wise time if we have answer timestamps
+    // Fetch ALL answers with necessary relations
     const allAnswers = await answerRepo().find({
         where: { submissionId: submission.id },
-        relations: ["section"]
+        relations: ["problem", "question", "section"]
     });
+
+    // Filter coding answers: distinct from MCQs
+    // Includes: 1. Answers linked to a Problem entity
+    //           2. Answers linked to a Question entity with type='coding'
+    const codingAnswers = allAnswers.filter(a =>
+        (a.problemId) ||
+        (a.question && a.question.type === "coding")
+    );
 
     // Separate MCQ and coding scores
     let mcqScore = 0, mcqMaxScore = 0, codingScore = 0, codingMaxScore = 0;
     for (const answer of allAnswers) {
-        if (answer.questionId) {
+        if (answer.questionId && answer.question?.type !== "coding") {
             mcqScore += answer.marksObtained || 0;
             mcqMaxScore += answer.maxMarks || 0;
-        } else if (answer.problemId) {
+        } else if (answer.problemId || (answer.question && answer.question.type === "coding")) {
             codingScore += answer.marksObtained || 0;
             codingMaxScore += answer.maxMarks || 0;
         }
@@ -443,22 +561,87 @@ const buildParticipantReport = async (
             ? Math.floor((submission.submittedAt.getTime() - submission.startedAt.getTime()) / 1000)
             : 0;
 
-    // Build coding problems details
-    const codingProblems = codingAnswers.map(answer => ({
-        problemId: answer.problemId!,
-        problemTitle: answer.problem?.title || "Unknown",
-        language: answer.language,
-        code: answer.code,
-        passedTests: answer.codingResult?.passedTests || 0,
-        totalTests: answer.codingResult?.totalTests || 0,
-        score: answer.marksObtained || 0,
-        maxScore: answer.maxMarks || 0,
-        status: answer.codingResult?.status || "not_attempted",
-        executionTime: answer.codingResult?.executionTime,
-        memoryUsed: answer.codingResult?.memoryUsed,
-        testCases: answer.codingResult?.sampleResults || [], // ✅ Included sample test cases
-        hiddenTestCases: answer.codingResult?.hiddenSummary || null // ✅ Included hidden summary
-    }));
+    // Build coding problems details with comprehensive plagiarism data
+    const codingProblems = codingAnswers.map(answer => {
+        const plagiarismData = answer.codingResult?.plagiarism || null;
+
+        return {
+            problemId: answer.problemId!,
+            problemTitle: answer.problem?.title || "Unknown",
+            language: answer.language,
+            code: answer.code,
+            passedTests: answer.codingResult?.passedTests || 0,
+            totalTests: answer.codingResult?.totalTests || 0,
+            testCasesSummary: `${answer.codingResult?.passedTests || 0}/${answer.codingResult?.totalTests || 0}`, // e.g., "3/50" or "50/50"
+            score: answer.marksObtained || 0,
+            maxScore: answer.maxMarks || 0,
+            status: answer.codingResult?.status || "not_attempted",
+            executionTime: answer.codingResult?.executionTime,
+            memoryUsed: answer.codingResult?.memoryUsed,
+            plagiarism: plagiarismData ? {
+                similarityPercentage: plagiarismData.similarity || 0,
+                aiPercentage: plagiarismData.aiScore || 0,
+                verdict: plagiarismData.verdict || "Clean",
+                matches: plagiarismData.matches || [],
+                reportPath: plagiarismData.reportUrl || null
+            } : null
+        };
+    });
+
+    // Calculate Dynamic Section Scores
+    const sections = await sectionRepo().find({
+        where: { assessment: { id: assessmentId } },
+        order: { order: "ASC" }
+    });
+
+    const calculatedSectionScores = sections.map(section => {
+        const sectionAnswers = allAnswers.filter(a => a.sectionId === section.id);
+
+        const obtainedMarks = sectionAnswers.reduce((sum, a) => sum + (Number(a.marksObtained) || 0), 0);
+
+        // Accurate Total Marks Calculation
+        // Priority: 1. Explicit Section Total -> 2. Count * Marks/Q -> 3. Sum of answers (fallback)
+        let totalMarks = section.totalMarks || 0;
+
+        if (totalMarks === 0 && section.questionCount > 0) {
+            totalMarks = section.questionCount * (section.marksPerQuestion || 1);
+        }
+
+        if (totalMarks === 0) {
+            // Fallback: sum of maxMarks from answers (only works if all questions were attempted/initialized)
+            totalMarks = sectionAnswers.reduce((sum, a) => sum + (Number(a.maxMarks) || 0), 0);
+        }
+
+        const correctAnswers = sectionAnswers.filter(a => a.isCorrect).length;
+        // Wrong answers are those ATTEMPTED but not correct
+        const wrongAnswers = sectionAnswers.filter(a => !a.isCorrect && a.status === 'attempted').length;
+
+        // Unattempted: Total Questions - (Correct + Wrong) OR explicitly marked unattempted
+        // If we trust section.questionCount, use it to find how many we missed completely
+        // NOTE: sectionAnswers only contains rows that exist. If user didn't touch a question, no row exists.
+        const totalQuestions = section.questionCount > 0 ? section.questionCount : sectionAnswers.length;
+        const attemptedCount = correctAnswers + wrongAnswers; // purely from answers that exist
+        const unattempted = Math.max(0, totalQuestions - attemptedCount);
+
+        let percentage = 0;
+        if (totalMarks > 0) {
+            percentage = (obtainedMarks / totalMarks) * 100;
+        }
+
+        return {
+            sectionId: section.id,
+            sectionTitle: section.title,
+            sectionType: section.type,
+            obtainedMarks: Number(obtainedMarks.toFixed(2)),
+            totalMarks: Number(totalMarks.toFixed(2)),
+            percentage: Number(percentage.toFixed(2)),
+            correctAnswers,
+            wrongAnswers,
+            unattempted,
+            negativeMarks: 0,
+            timeTaken: 0
+        };
+    });
 
     // Build verdict from analytics
     const verdictData = (submission.analytics as any)?.verdict || {};
@@ -480,10 +663,12 @@ const buildParticipantReport = async (
         },
 
         verification: {
-            photoUrl: user?.photoUrl || null,
-            photoOptimizedUrl: user?.photoOptimizedUrl || null,
-            photoThumbnailUrl: user?.photoThumbnailUrl || null,
-            faceDescriptor: user?.faceDescriptor || null
+            // ✅ PRIORITY: Use assessment-specific photo from session
+            // Fallback to user photo if session photo not available
+            photoUrl: session?.photoUrl || user?.photoUrl || null,
+            photoOptimizedUrl: session?.photoOptimizedUrl || user?.photoOptimizedUrl || null,
+            photoThumbnailUrl: session?.photoThumbnailUrl || user?.photoThumbnailUrl || null,
+            faceDescriptor: session?.faceDescriptor || user?.faceDescriptor || null
         },
 
         session: {
@@ -497,14 +682,18 @@ const buildParticipantReport = async (
         },
 
         scores: {
-            totalScore: submission.totalScore || 0,
-            maxScore: submission.maxScore || 0,
-            percentage: submission.percentage || 0,
-            sectionScores: submission.sectionScores || [],
+            totalScore: parseFloat(submission.totalScore as any) || 0,
+            maxScore: parseFloat(submission.maxScore as any) || 0,
+            percentage: parseFloat(submission.percentage as any) || 0,
+            sectionScores: calculatedSectionScores.length > 0 ? calculatedSectionScores : (submission.sectionScores || []),
             mcqScore,
             mcqMaxScore,
             codingScore,
-            codingMaxScore
+            codingMaxScore,
+            testCases: {
+                passed: codingProblems.reduce((sum, cp) => sum + (cp.passedTests || 0), 0),
+                total: codingProblems.reduce((sum, cp) => sum + (cp.totalTests || 0), 0)
+            }
         },
 
         codingProblems,

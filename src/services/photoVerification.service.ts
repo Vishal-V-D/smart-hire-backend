@@ -87,12 +87,22 @@ export const uploadVerificationPhoto = async (
 
     console.log(`   ✅ Live photo uploaded: ${livePhotoUrl}`);
 
-    // Persist the photo URL to the User entity if it's missing
-    // This ensures it appears in the Participant Report later
+    // ✅ ALWAYS Save to Assessment Session (Assessment-Specific Photo)
+    // This ensures reports show the photo from *this* specific assessment
+    session.photoUrl = livePhotoUrl;
+    // We can also store optimized/thumbnail if we generated them, 
+    // but for now Supabase returns just one URL.
+    await sessionRepo().save(session);
+    console.log(`   💾 Saved photo to AssessmentSession ${session.id}`);
+
+    // Persist to User entity as a fallback or "latest profile photo"
+    // If user has no photo, definitely save it.
+    // If they do, we can decide to overwrite or not. 
+    // Current logic: Only if missing.
     if (!(user as any)?.photoUrl) {
         await userRepo().update(userId, { photoUrl: livePhotoUrl });
         console.log(`   💾 Saved live photo as primary User photoUrl`);
-        storedPhotoUrl = livePhotoUrl; // Update local var so response reflects it
+        storedPhotoUrl = livePhotoUrl;
     }
 
     return {

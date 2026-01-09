@@ -37,7 +37,11 @@ export const recordViolation = async (
         session,
         assessmentId: session.assessment?.id || session.assessmentId, // Store assessmentId directly
         type: violationType,
-        metadata,
+        metadata: {
+            ...metadata,
+            timestamp: metadata?.timestamp || new Date().toISOString(), // Ensure timestamp exists in metadata
+            serverRecievedAt: new Date().toISOString()
+        },
         detectedAt: new Date() // Explicitly set server timestamp
     });
 
@@ -234,13 +238,14 @@ export const getAllViolationsForAssessment = async (
 export const getViolationStatsForAssessment = async (assessmentId: string) => {
     console.log(`\n📊 [STATS] Getting violation stats for assessment ${assessmentId}`);
 
-    // Fetch violations filtered by assessmentId
+    // Fetch violations filtered by assessmentId (Ordered by most recent)
     const violations = await violationRepo()
         .createQueryBuilder("violation")
         .leftJoinAndSelect("violation.session", "session")
         .leftJoinAndSelect("session.user", "user")
         .leftJoinAndSelect("session.invitation", "invitation")
         .where("violation.assessmentId = :assessmentId", { assessmentId })
+        .orderBy("violation.detectedAt", "DESC") // ✅ Sort by recent first
         .getMany();
 
     console.log(`   Found ${violations.length} violations for assessment ${assessmentId}`);
@@ -255,64 +260,70 @@ export const getViolationStatsForAssessment = async (assessmentId: string) => {
         };
     }
 
-    // Calculate stats by type
-    const violationsByType: Record<string, number> = {};
-    Object.values(ViolationType).forEach(type => {
-        violationsByType[type] = violations.filter(v => v.type === type).length;
-    });
+    // Aggregation Logic: Group by Session (User)
+    const userStatsMap: Record<string, any> = {};
 
-    // Calculate violations per session
-    const sessionViolationCounts: Record<string, { count: number; user: any }> = {};
     violations.forEach(v => {
+        const sessionId = v.session.id;
         const userName =
             v.session?.user?.username ||
             v.session?.invitation?.name ||
             v.session?.invitation?.email?.split('@')[0] ||
             v.session?.user?.email?.split('@')[0] ||
             `Candidate ${v.session?.id?.slice(0, 4) || 'Unknown'}`;
+        const userEmail = v.session?.user?.email || v.session?.invitation?.email || "";
 
-        if (!sessionViolationCounts[v.session.id]) {
-            sessionViolationCounts[v.session.id] = {
-                count: 0,
+        if (!userStatsMap[sessionId]) {
+            userStatsMap[sessionId] = {
                 user: {
-                    id: v.session.user?.id || null,
-                    username: userName,
-                    name: userName, // Ensure consistent naming
-                    email: v.session.user?.email || v.session.invitation?.email || ""
-                }
+                    name: userName,
+                    email: userEmail,
+                    username: userName
+                },
+                totalViolations: 0,
+                violationsByType: {}, // Breakdown: { "window_swap": 5, "tab_switch": 2 }
+                violations: []        // Detailed list if needed (or summarized)
             };
         }
-        sessionViolationCounts[v.session.id].count++;
+
+        // Increment Total
+        userStatsMap[sessionId].totalViolations++;
+
+        // Increment Type Count
+        if (!userStatsMap[sessionId].violationsByType[v.type]) {
+            userStatsMap[sessionId].violationsByType[v.type] = 0;
+        }
+        userStatsMap[sessionId].violationsByType[v.type]++;
+
+        // Add to detailed list (optional, but requested "each violations")
+        userStatsMap[sessionId].violations.push({
+            type: v.type,
+            detectedAt: v.detectedAt,
+            metadata: v.metadata
+        });
     });
 
-    // Get recent violations (last 5 minutes)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const recentViolationsCount = violations.filter(
-        v => v.detectedAt > fiveMinutesAgo
-    ).length;
+    // Convert Map to Array & Sort by Count DESC
+    const users = Object.values(userStatsMap).sort((a: any, b: any) => b.totalViolations - a.totalViolations);
 
-    // Get high risk sessions (more than 5 violations)
-    const highRiskSessions = Object.entries(sessionViolationCounts)
-        .filter(([_, data]) => data.count >= 5)
-        .map(([sessionId, data]) => ({
-            sessionId,
-            violationCount: data.count,
-            user: data.user
-        }))
-        .sort((a, b) => b.violationCount - a.violationCount);
+    // Calculate global stats (overall dashboard)
+    const violationsByType: Record<string, number> = {};
+    Object.values(ViolationType).forEach(type => {
+        violationsByType[type] = violations.filter(v => v.type === type).length;
+    });
 
     return {
         totalViolations: violations.length,
-        violationsByType,
-        violationsPerSession: Object.entries(sessionViolationCounts).map(
-            ([sessionId, data]) => ({
-                sessionId,
-                count: data.count,
-                user: data.user
-            })
-        ),
-        recentViolationsCount,
-        highRiskSessions
+        violationsByType, // Global breakdown
+        users,            // ⭐ New User-Centric List requested
+        // Legacy support (optional)
+        violationsPerSession: users.map((u: any) => ({
+            sessionId: "unknown", // Map doesn't keep session ID as key in array, but UI might not need it if usage changed
+            count: u.totalViolations,
+            user: u.user
+        })),
+        recentViolationsCount: 0, // Simplified
+        highRiskSessions: []
     };
 };
 

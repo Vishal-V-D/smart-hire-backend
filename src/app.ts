@@ -35,6 +35,8 @@ import codeExecutionRoutes from "./routes/codeExecution.routes";
 import adminMonitorRoutes from "./routes/adminMonitor.routes";
 import assessmentReportRoutes from "./routes/assessmentReport.routes";
 import authenticationRoutes from "./routes/authentication.routes";
+import sectionProblemRoutes from "./controllers/sectionProblem.controller";
+import sqlExecutionRoutes from "./routes/sqlExecution.routes";
 
 dotenv.config();
 
@@ -143,11 +145,17 @@ app.use("/api/contestant/monitor", monitorRoutes); // Monitor violations
 // 💻 Code Execution API (Run & Submit code with Judge0)
 app.use("/api/code", codeExecutionRoutes);
 
+// 🗄️ SQL Execution API (Run & Submit SQL queries)
+app.use("/api/sql", sqlExecutionRoutes);
+
 // 🔴 Admin Monitoring API (Realtime Violation Feed for Organizers)
 app.use("/api/admin", adminMonitorRoutes);
 
 // 📊 Admin Reports API (Final Reports for Organizers)
 app.use("/api/admin", assessmentReportRoutes);
+
+// 🎯 Section Problem API (Test case configuration for coding problems)
+app.use("/api/section-problems", sectionProblemRoutes);
 
 // ❌ Centralized Error Handling + Logging
 app.use((err: any, req: any, res: any, next: any) => {

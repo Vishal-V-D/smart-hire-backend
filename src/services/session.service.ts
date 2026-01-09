@@ -163,3 +163,36 @@ export const startAssessment = async (sessionToken: string): Promise<AssessmentS
     console.log(`   ✅ Assessment started at: ${session.startedAt.toISOString()}`);
     return session;
 };
+
+/**
+ * Record proctoring photo for this assessment session
+ * 📸 This saves the photo specifically for THIS assessment
+ * Each assessment gets its own photo, preventing conflicts
+ */
+export const recordProctoringPhoto = async (
+    sessionToken: string,
+    photoData: {
+        photoUrl: string;
+        photoOptimizedUrl?: string;
+        photoThumbnailUrl?: string;
+        faceDescriptor?: any;
+    }
+): Promise<AssessmentSession> => {
+    console.log(`\n📸 [SESSION] Recording proctoring photo...`);
+    console.log(`   Photo URL: ${photoData.photoUrl}`);
+
+    const session = await validateSession(sessionToken);
+
+    // Save photo URLs to THIS session
+    session.photoUrl = photoData.photoUrl;
+    session.photoOptimizedUrl = photoData.photoOptimizedUrl || null;
+    session.photoThumbnailUrl = photoData.photoThumbnailUrl || null;
+    session.faceDescriptor = photoData.faceDescriptor || null;
+
+    await sessionRepo().save(session);
+
+    console.log(`   ✅ Proctoring photo saved to session ${session.id}`);
+    console.log(`   📷 This photo is specific to assessment: ${session.assessmentId}`);
+
+    return session;
+};

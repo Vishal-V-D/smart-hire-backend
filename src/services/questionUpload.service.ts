@@ -22,6 +22,9 @@ interface UploadSummary {
     failed: number;
     imagesUploaded?: number;
     errors: ValidationError[];
+    pseudocodeCount?: number;
+    divisionBreakdown?: Record<string, number>;
+    typeBreakdown?: Record<string, number>;
 }
 
 // Sanitize filename for Supabase
@@ -97,6 +100,36 @@ function getSolutionValue(row: any): string | number | undefined {
         }
     }
     return undefined;
+}
+
+// Helper to detect if solution indicates multiple choice
+function detectMultipleChoice(solutionValue: string | number | undefined): boolean {
+    if (!solutionValue) return false;
+
+    const solutionStr = solutionValue.toString().trim();
+
+    // Check if it's a JSON array: ["1","3"] or [1,3]
+    if (solutionStr.startsWith('[') && solutionStr.endsWith(']')) {
+        try {
+            const parsed = JSON.parse(solutionStr);
+            if (Array.isArray(parsed) && parsed.length > 1) {
+                return true;
+            }
+        } catch {
+            // Not valid JSON, continue checking
+        }
+    }
+
+    // Check if it contains comma: "1,3" or "A,C" or "1, 3"
+    if (solutionStr.includes(',')) {
+        const parts = solutionStr.split(',').map(p => p.trim()).filter(p => p.length > 0);
+        if (parts.length > 1) {
+            return true;
+        }
+    }
+
+    // Single answer
+    return false;
 }
 
 // Map difficulty string to enum
@@ -178,7 +211,12 @@ function validateCSVRow(row: any, rowNumber: number): ValidationError[] {
 }
 
 // Parse CSV row to Question entity
-function parseCSVRow(row: any, division?: string): Partial<Question> {
+function parseCSVRow(
+    row: any,
+    division?: string,
+    subdivision?: string,
+    topic?: string
+): Partial<Question> {
     // Parse options if exists
     let options: string[] | undefined = undefined;
     let questionType: QuestionType = QuestionType.FILL_IN_THE_BLANK;
@@ -207,11 +245,28 @@ function parseCSVRow(row: any, division?: string): Partial<Question> {
                 console.log(`  📋 Converted options object to array: ${options.length} options`);
             }
 
-            questionType = QuestionType.SINGLE_CHOICE; // If has options, it's single choice
+            // 🎯 AUTO-DETECT: Single Choice vs Multiple Choice
+            const solutionValue = getSolutionValue(row);
+            const isMultipleChoice = detectMultipleChoice(solutionValue);
+
+            questionType = isMultipleChoice
+                ? QuestionType.MULTIPLE_CHOICE
+                : QuestionType.SINGLE_CHOICE;
+
+            console.log(`  🎯 Detected type: ${questionType} (Solution: ${solutionValue})`);
         } catch (e) {
             console.warn(`Failed to parse options for row: ${row["S.No"]}`);
         }
     }
+
+    // Explicitly check columns for overrides (CSV > Input Param)
+    const rowDivision = row.Division?.trim() || row.MainType?.trim();
+    const rowSubdivision = row.Subdivision?.trim() || row.Subtopic?.trim();
+    const rowTopic = row.Topic?.trim();
+
+    const finalDivision = rowDivision || division || undefined;
+    const finalSubdivision = rowSubdivision || subdivision || undefined;
+    const finalTopic = rowTopic || topic || undefined;
 
     const question: Partial<Question> = {
         text: row.Question?.trim(),
@@ -219,11 +274,12 @@ function parseCSVRow(row: any, division?: string): Partial<Question> {
         options: options,
         correctAnswer: getSolutionValue(row)?.toString().trim(), // Convert to string
         explanation: row.Explanation?.trim() || undefined,
+        pseudocode: row.Pseudocode?.trim() || undefined, // Extract pseudocode from CSV
         marks: 1, // Default marks
         difficulty: mapDifficulty(row.Level?.trim()), // Convert to enum: Easy, Medium, Hard
-        division: division || undefined, // From frontend
-        subdivision: row.Subtopic?.trim() || undefined,
-        topic: row.Topic?.trim() || undefined,
+        division: finalDivision,
+        subdivision: finalSubdivision,
+        topic: finalTopic,
         image: undefined, // Will be set after image upload or from image_url
     };
 
@@ -236,12 +292,20 @@ function parseCSVRow(row: any, division?: string): Partial<Question> {
 }
 
 // Upload CSV file
-export async function uploadCSV(fileBuffer: Buffer, division?: string): Promise<UploadSummary> {
+export async function uploadCSV(
+    fileBuffer: Buffer,
+    division?: string,
+    subdivision?: string,
+    topic?: string
+): Promise<UploadSummary> {
     const summary: UploadSummary = {
         total: 0,
         success: 0,
         failed: 0,
         errors: [],
+        pseudocodeCount: 0,
+        divisionBreakdown: {},
+        typeBreakdown: {},
     };
 
     const rows: any[] = [];
@@ -272,12 +336,42 @@ export async function uploadCSV(fileBuffer: Buffer, division?: string): Promise<
 
                     try {
                         // Parse and save question
-                        const questionData = parseCSVRow(row, division);
+                        const questionData = parseCSVRow(row, division, subdivision, topic);
                         const question = questionRepo().create(questionData);
                         await questionRepo().save(question);
 
                         summary.success++;
-                        console.log(`[${rowNumber}/${rows.length}] ✅ Question saved`);
+
+                        // Track statistics
+                        if (questionData.pseudocode) {
+                            summary.pseudocodeCount!++;
+                        }
+
+                        const div = questionData.division || 'Uncategorized';
+                        summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+
+                        const type = questionData.type || 'Unknown';
+                        summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
+
+                        // Enhanced Detailed Logging
+                        const divisionLabel = questionData.division || 'N/A';
+                        const subdivisionLabel = questionData.subdivision || 'N/A';
+                        const topicLabel = questionData.topic || 'N/A';
+                        const typeLabel = questionData.type || 'N/A';
+                        const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
+                        const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
+
+                        console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                        console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY`);
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                        console.log(`📂 DIVISION    : ${divisionLabel}`);
+                        console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
+                        console.log(`🏷️  TOPIC       : ${topicLabel}`);
+                        console.log(`📝 TYPE        : ${typeLabel}`);
+                        console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
+                        console.log(`🔢 OPTIONS     : ${hasOptions}`);
+                        console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
                     } catch (error: any) {
                         summary.errors.push({
                             row: rowNumber,
@@ -285,14 +379,42 @@ export async function uploadCSV(fileBuffer: Buffer, division?: string): Promise<
                             error: error.message,
                         });
                         summary.failed++;
-                        console.log(`[${rowNumber}/${rows.length}] ❌ Save failed: ${error.message}`);
+
+                        // Enhanced Error Logging
+                        console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                        console.log(`[${rowNumber}/${rows.length}] ❌ QUESTION UPLOAD FAILED`);
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                        console.log(`⚠️  ERROR: ${error.message}`);
+                        console.log(`📋 ROW DATA: ${JSON.stringify(row, null, 2)}`);
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
                     }
                 }
 
-                console.log(`\n🎉 CSV Upload Complete!`);
-                console.log(`   Total: ${summary.total}`);
-                console.log(`   Success: ${summary.success}`);
-                console.log(`   Failed: ${summary.failed}`);
+                // Enhanced Final Summary
+                console.log(`\n╔════════════════════════════════════════════════════════════╗`);
+                console.log(`║           🎉 CSV UPLOAD COMPLETE - SUMMARY 🎉              ║`);
+                console.log(`╚════════════════════════════════════════════════════════════╝\n`);
+                console.log(`📊 OVERALL STATISTICS:`);
+                console.log(`   ├─ Total Questions    : ${summary.total}`);
+                console.log(`   ├─ ✅ Success         : ${summary.success}`);
+                console.log(`   ├─ ❌ Failed          : ${summary.failed}`);
+                console.log(`   └─ 💻 With Pseudocode : ${summary.pseudocodeCount}\n`);
+
+                if (Object.keys(summary.divisionBreakdown!).length > 0) {
+                    console.log(`📂 DIVISION BREAKDOWN:`);
+                    Object.entries(summary.divisionBreakdown!).forEach(([div, count]) => {
+                        console.log(`   ├─ ${div.padEnd(20)} : ${count} questions`);
+                    });
+                    console.log('');
+                }
+
+                if (Object.keys(summary.typeBreakdown!).length > 0) {
+                    console.log(`📝 TYPE BREAKDOWN:`);
+                    Object.entries(summary.typeBreakdown!).forEach(([type, count]) => {
+                        console.log(`   ├─ ${type.padEnd(20)} : ${count} questions`);
+                    });
+                    console.log('');
+                }
 
                 resolve(summary);
             })
@@ -303,13 +425,21 @@ export async function uploadCSV(fileBuffer: Buffer, division?: string): Promise<
 }
 
 // Upload ZIP file (CSV + images)
-export async function uploadZIP(fileBuffer: Buffer, division?: string): Promise<UploadSummary> {
+export async function uploadZIP(
+    fileBuffer: Buffer,
+    division?: string,
+    subdivision?: string,
+    topic?: string
+): Promise<UploadSummary> {
     const summary: UploadSummary = {
         total: 0,
         success: 0,
         failed: 0,
         imagesUploaded: 0,
         errors: [],
+        pseudocodeCount: 0,
+        divisionBreakdown: {},
+        typeBreakdown: {},
     };
 
     try {
@@ -334,8 +464,8 @@ export async function uploadZIP(fileBuffer: Buffer, division?: string): Promise<
         const imageEntries = zipEntries.filter(
             (entry) =>
                 !entry.isDirectory &&
-                entry.entryName.toLowerCase().includes("images/") &&
-                /\.(png|jpg|jpeg|gif|svg)$/i.test(entry.entryName)
+                (entry.entryName.toLowerCase().includes("images/") &&
+                    /\.(png|jpg|jpeg|gif|svg)$/i.test(entry.entryName))
         );
 
         console.log(`✅ Found ${imageEntries.length} images`);
@@ -385,7 +515,7 @@ export async function uploadZIP(fileBuffer: Buffer, division?: string): Promise<
 
                         try {
                             // Parse question
-                            const questionData = parseCSVRow(row, division);
+                            const questionData = parseCSVRow(row, division, subdivision, topic);
 
                             // Handle question_image column - upload to Supabase if exists
                             if (row.question_image && imageUrlMap[row.question_image]) {
@@ -397,7 +527,39 @@ export async function uploadZIP(fileBuffer: Buffer, division?: string): Promise<
                             await questionRepo().save(question);
 
                             summary.success++;
-                            console.log(`[${rowNumber}/${rows.length}] ✅ Question saved`);
+
+                            // Track statistics
+                            if (questionData.pseudocode) {
+                                summary.pseudocodeCount!++;
+                            }
+
+                            const div = questionData.division || 'Uncategorized';
+                            summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+
+                            const type = questionData.type || 'Unknown';
+                            summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
+
+                            // Enhanced Detailed Logging
+                            const divisionLabel = questionData.division || 'N/A';
+                            const subdivisionLabel = questionData.subdivision || 'N/A';
+                            const topicLabel = questionData.topic || 'N/A';
+                            const typeLabel = questionData.type || 'N/A';
+                            const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
+                            const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
+                            const hasImage = questionData.image ? '✅ YES' : '❌ NO';
+
+                            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY (ZIP)`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`📂 DIVISION    : ${divisionLabel}`);
+                            console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
+                            console.log(`🏷️  TOPIC       : ${topicLabel}`);
+                            console.log(`📝 TYPE        : ${typeLabel}`);
+                            console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
+                            console.log(`🔢 OPTIONS     : ${hasOptions}`);
+                            console.log(`🖼️  IMAGE       : ${hasImage}`);
+                            console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
                         } catch (error: any) {
                             summary.errors.push({
                                 row: rowNumber,
@@ -405,15 +567,43 @@ export async function uploadZIP(fileBuffer: Buffer, division?: string): Promise<
                                 error: error.message,
                             });
                             summary.failed++;
-                            console.log(`[${rowNumber}/${rows.length}] ❌ Save failed: ${error.message}`);
+
+                            // Enhanced Error Logging
+                            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`[${rowNumber}/${rows.length}] ❌ QUESTION UPLOAD FAILED (ZIP)`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`⚠️  ERROR: ${error.message}`);
+                            console.log(`📋 ROW DATA: ${JSON.stringify(row, null, 2)}`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
                         }
                     }
 
-                    console.log(`\n🎉 ZIP Upload Complete!`);
-                    console.log(`   Total Questions: ${summary.total}`);
-                    console.log(`   Success: ${summary.success}`);
-                    console.log(`   Failed: ${summary.failed}`);
-                    console.log(`   Images Uploaded: ${summary.imagesUploaded}`);
+                    // Enhanced Final Summary
+                    console.log(`\n╔════════════════════════════════════════════════════════════╗`);
+                    console.log(`║           🎉 ZIP UPLOAD COMPLETE - SUMMARY 🎉              ║`);
+                    console.log(`╚════════════════════════════════════════════════════════════╝\n`);
+                    console.log(`📊 OVERALL STATISTICS:`);
+                    console.log(`   ├─ Total Questions    : ${summary.total}`);
+                    console.log(`   ├─ ✅ Success         : ${summary.success}`);
+                    console.log(`   ├─ ❌ Failed          : ${summary.failed}`);
+                    console.log(`   ├─ 💻 With Pseudocode : ${summary.pseudocodeCount}`);
+                    console.log(`   └─ 🖼️  Images Uploaded : ${summary.imagesUploaded}\n`);
+
+                    if (Object.keys(summary.divisionBreakdown!).length > 0) {
+                        console.log(`📂 DIVISION BREAKDOWN:`);
+                        Object.entries(summary.divisionBreakdown!).forEach(([div, count]) => {
+                            console.log(`   ├─ ${div.padEnd(20)} : ${count} questions`);
+                        });
+                        console.log('');
+                    }
+
+                    if (Object.keys(summary.typeBreakdown!).length > 0) {
+                        console.log(`📝 TYPE BREAKDOWN:`);
+                        Object.entries(summary.typeBreakdown!).forEach(([type, count]) => {
+                            console.log(`   ├─ ${type.padEnd(20)} : ${count} questions`);
+                        });
+                        console.log('');
+                    }
 
                     resolve(summary);
                 })

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as assessmentCtrl from "../controllers/assessment.controller";
+import * as reportCtrl from "../controllers/assessmentReport.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { authorize } from "../middleware/role.middleware";
 
@@ -10,6 +11,7 @@ const router = Router();
 router.post("/", authenticate, authorize("ORGANIZER"), assessmentCtrl.createAssessment);
 router.get("/", authenticate, authorize("ORGANIZER", "ADMIN", "COMPANY"), assessmentCtrl.listAssessments);
 router.get("/:id", authenticate, authorize("ORGANIZER", "ADMIN", "COMPANY"), assessmentCtrl.getAssessment);
+router.get("/:id/submissions", authenticate, authorize("ORGANIZER", "ADMIN", "COMPANY"), reportCtrl.getAssessmentReport);
 router.patch("/:id", authenticate, authorize("ORGANIZER"), assessmentCtrl.updateAssessment);
 router.delete("/:id", authenticate, authorize("ORGANIZER"), assessmentCtrl.deleteAssessment);
 router.post("/:id/publish", authenticate, authorize("ORGANIZER"), assessmentCtrl.publishAssessment);

@@ -5,6 +5,7 @@ import { Question } from "../entities/Question.entity";
 import { AssessmentInvitation, InvitationStatus } from "../entities/AssessmentInvitation.entity";
 import { SectionProblem } from "../entities/SectionProblem.entity";
 import { Problem } from "../entities/problem.entity";
+import { getFilteredTestCases } from "./sectionProblem.service";
 
 const assessmentRepo = () => AppDataSource.getRepository(Assessment);
 const sectionRepo = () => AppDataSource.getRepository(AssessmentSection);
@@ -147,28 +148,61 @@ export const getQuestionsForSection = async (
     // Get raw questions (remove correctAnswer field)
     const rawQuestions = section.questions.map((q) => {
         const { correctAnswer, ...questionWithoutAnswer } = q as any;
+
+        // 🔍 DEBUG: Log what we're sending
+        console.log(`   📝 Question ${q.id.slice(0, 8)}: pseudocode=${q.pseudocode ? 'YES' : 'NO'}, type=${q.type}`);
+
         return questionWithoutAnswer;
     });
 
     // Get coding problems - Extract from SectionProblem joint entity
+    // 🎯 Apply assessment-specific test case filtering
     // Sanitize: Remove solutions and hidden testcases, send everything else
     const problems = section.problems?.map((sp) => {
         const problem = sp.problem;
         if (!problem) return null;
 
+        // 🎯 Apply test case filtering based on assessment configuration
+        const { exampleTestcases, hiddenTestcases } = getFilteredTestCases(
+            problem,
+            sp.testCaseConfig
+        );
+
+        const originalExampleCount = problem.exampleTestcases?.length || 0;
+        const originalHiddenCount = problem.hiddenTestcases?.length || 0;
+        const filteredExampleCount = exampleTestcases.length;
+        const filteredHiddenCount = hiddenTestcases.length;
+
+        // 🔍 Detailed logging for debugging
+        if (sp.testCaseConfig) {
+            console.log(`   🎯 [PARTIAL] Problem "${problem.title}"`);
+            console.log(`      Example: ${filteredExampleCount}/${originalExampleCount} cases (${Math.round(filteredExampleCount / originalExampleCount * 100)}%)`);
+            console.log(`      Hidden: ${filteredHiddenCount}/${originalHiddenCount} cases (${Math.round(filteredHiddenCount / originalHiddenCount * 100)}%)`);
+            console.log(`      Config:`, JSON.stringify(sp.testCaseConfig));
+        } else {
+            console.log(`   📋 [FULL] Problem "${problem.title}"`);
+            console.log(`      Example: ${originalExampleCount} cases (100%)`);
+            console.log(`      Hidden: ${originalHiddenCount} cases (100%)`);
+            console.log(`      Config: null (using all test cases)`);
+        }
+
         // Destructure to remove sensitive fields, keep everything else
         const {
             solutions,
-            hiddenTestcases,
+            hiddenTestcases: _hiddenOriginal,  // Remove original hidden test cases
             createdBy,  // Don't send creator details
             ...safeProblemData
         } = problem as any;
 
-        // Return sanitized problem with section-specific data
+        // Return sanitized problem with FILTERED test cases
         return {
             ...safeProblemData,
+            exampleTestcases: exampleTestcases,  // 🎯 Filtered example test cases
+            // hiddenTestcases are NEVER sent to frontend for security
+            totalExampleTestCases: filteredExampleCount, // 🎯 Explicitly send count
+            totalHiddenTestCases: filteredHiddenCount,   // 🎯 Explicitly send count
             marks: sp.marks || 10, // Default to 10 if not set
-            sectionProblemId: sp.id // Send the link ID too
+            sectionProblemId: sp.id // Send the link ID for submission
         };
     }).filter((p): p is NonNullable<typeof p> => !!p) || [];
 
@@ -208,7 +242,9 @@ export const getQuestionsForSection = async (
                     problems.push({
                         ...safeProblemData,
                         marks: orphan.marks || section.marksPerQuestion || 10,
-                        sectionProblemId: `recovered-${orphan.id}` // Placeholder ID
+                        sectionProblemId: `recovered-${orphan.id}`, // Placeholder ID
+                        totalExampleTestCases: safeProblemData.exampleTestcases?.length || 0, // 🎯 Explicitly send count
+                        totalHiddenTestCases: hiddenTestcases?.length || 0 // 🎯 Explicitly send count
                     });
                 } else {
                     console.warn(`   ❌ FAILED. Could not find matching Problem entity for: "${orphan.text}". Keeping as raw question.`);
@@ -234,6 +270,22 @@ export const getQuestionsForSection = async (
         problems.forEach((p, idx) => {
             console.log(`\n   💻 [PROBLEM ${idx + 1}] FULL DATA BEING SENT:`);
             console.log(JSON.stringify(p, null, 2));
+        });
+    }
+
+    // 🔍 DEBUG: Log each question's full data
+    if (validQuestions.length > 0) {
+        validQuestions.forEach((q, idx) => {
+            console.log(`\n   📝 [QUESTION ${idx + 1}] FULL DATA:`);
+            console.log(`      ID: ${q.id}`);
+            console.log(`      Type: ${q.type}`);
+            console.log(`      Text: ${q.text?.substring(0, 50)}...`);
+            console.log(`      Pseudocode: ${q.pseudocode ? 'YES (' + q.pseudocode.substring(0, 30) + '...)' : 'NO (null)'}`);
+            console.log(`      Division: ${q.division || 'null'}`);
+            console.log(`      Subdivision: ${q.subdivision || 'null'}`);
+            console.log(`      Topic: ${q.topic || 'null'}`);
+            console.log(`      Options: ${q.options?.length || 0}`);
+            console.log(`      Marks: ${q.marks}`);
         });
     }
     console.log(`--------------------------------------------------\n`);

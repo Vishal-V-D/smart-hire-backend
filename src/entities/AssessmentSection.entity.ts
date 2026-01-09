@@ -10,11 +10,13 @@ import {
 import { Assessment } from "./Assessment.entity";
 import { Question } from "./Question.entity";
 import { SectionProblem } from "./SectionProblem.entity";
+import { SqlQuestion } from "./SqlQuestion.entity";
 
 export enum SectionType {
     APTITUDE = "aptitude",
     TECHNICAL = "technical",
     CODING = "coding",
+    SQL = "sql",
     SUBJECTIVE = "subjective",
 }
 
@@ -113,4 +115,8 @@ export class AssessmentSection {
     // Coding problems in this section
     @OneToMany(() => SectionProblem, (sp) => sp.section)
     problems: SectionProblem[];
+
+    // SQL questions in this section
+    @OneToMany(() => SqlQuestion, (sqlQuestion) => sqlQuestion.section)
+    sqlQuestions: SqlQuestion[];
 }

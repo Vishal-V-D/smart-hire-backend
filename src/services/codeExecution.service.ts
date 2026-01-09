@@ -1,12 +1,15 @@
 import axios from "axios";
 import { AppDataSource } from "../config/db";
 import { Problem } from "../entities/problem.entity";
+import { SectionProblem } from "../entities/SectionProblem.entity";
+import { getFilteredTestCases } from "./sectionProblem.service";
 
 const JUDGE0_API_URL = process.env.JUDGE0_API_URL || "https://ce.judge0.com";
-const JUDGE0_MAX_RETRIES = parseInt(process.env.JUDGE0_MAX_RETRIES || "20");
-const JUDGE0_POLL_INTERVAL = parseInt(process.env.JUDGE0_POLL_INTERVAL || "2000"); // Increased to 2s for batch
+const JUDGE0_MAX_RETRIES = parseInt(process.env.JUDGE0_MAX_RETRIES || "40");
+const JUDGE0_POLL_INTERVAL = parseInt(process.env.JUDGE0_POLL_INTERVAL || "3000"); // 3s polling
 
 const problemRepo = () => AppDataSource.getRepository(Problem);
+const sectionProblemRepo = () => AppDataSource.getRepository(SectionProblem);
 
 // Language ID mapping for Judge0
 const LANGUAGE_IDS: Record<string, number> = {
@@ -122,8 +125,29 @@ const combineCodeWithDriver = (
         }
     }
 
-    const driver = driverCode[langKey];
-    return `${processedUserCode}\n\n${driver}`;
+    let driver = driverCode[langKey];
+    if (!driver) return processedUserCode;
+
+    // 🔧 Auto-fix indentation: Remove common leading whitespace from driver code
+    // This prevents "IndentationError" if driver code was saved with indentation
+    const driverLines = driver.split('\n');
+    const nonEmptyDriverLines = driverLines.filter(l => l.trim().length > 0);
+
+    if (nonEmptyDriverLines.length > 0) {
+        // Use the indentation of the first non-empty line as the baseline
+        const firstLineIndent = nonEmptyDriverLines[0].match(/^(\s*)/)?.[1] || "";
+
+        if (firstLineIndent.length > 0) {
+            driver = driverLines.map(line => {
+                if (line.startsWith(firstLineIndent)) {
+                    return line.substring(firstLineIndent.length);
+                }
+                return line;
+            }).join('\n');
+        }
+    }
+
+    return `${processedUserCode}\n\n${driver.trim()}`;
 };
 
 // ==========================================
@@ -337,15 +361,38 @@ const processJudge0Result = (raw: any, tc: TestCase, index: number): ExecutionRe
 export const runCode = async (
     problemId: string,
     code: string,
-    language: string
+    language: string,
+    sectionProblemId?: string
 ): Promise<RunResponse> => {
     console.log(`\n🏃 [RUN] Running code for problem ${problemId}`);
 
     const problem = await problemRepo().findOne({ where: { id: problemId } });
     if (!problem) throw { status: 404, message: "Problem not found" };
 
-    const sampleTestcases: TestCase[] = problem.exampleTestcases || [];
-    if (sampleTestcases.length === 0) throw { status: 400, message: "No sample testcases" };
+    let sampleTestcases: TestCase[] = problem.exampleTestcases || [];
+    const originalCount = sampleTestcases.length;
+
+    // 🎯 Apply assessment-specific filtering if configuration provided
+    if (sectionProblemId) {
+        const sectionProblem = await sectionProblemRepo().findOne({
+            where: { id: sectionProblemId },
+            relations: ["problem"]
+        });
+
+        if (sectionProblem && sectionProblem.testCaseConfig) {
+            console.log(`   🎯 [PARTIAL RUN] Applying filter from sectionProblem ${sectionProblemId}...`);
+            const filtered = getFilteredTestCases(problem, sectionProblem.testCaseConfig);
+            sampleTestcases = filtered.exampleTestcases;
+
+            console.log(`      Example: ${sampleTestcases.length}/${originalCount} cases (${Math.round(sampleTestcases.length / originalCount * 100)}%)`);
+        } else {
+            console.log(`   📋 [FULL RUN] Using ALL sample cases (No config found)`);
+        }
+    } else {
+        console.log(`   📋 [FULL RUN] Using ALL sample cases (No context provided)`);
+    }
+
+    if (sampleTestcases.length === 0) throw { status: 400, message: "No sample testcases available for execution" };
 
     const fullCode = combineCodeWithDriver(code, problem.driverCode as Record<string, string> | null, language);
     const results = await executeAgainstTestcases(fullCode, language, sampleTestcases);
@@ -361,6 +408,7 @@ export const runCode = async (
 
 /**
  * SUBMIT CODE - Execute against sample + hidden testcases
+ * 🎯 Supports assessment-specific test case filtering
  */
 export const submitCode = async (
     problemId: string,
@@ -368,18 +416,55 @@ export const submitCode = async (
     language: string,
     userId: string,
     assessmentId?: string,
-    sectionId?: string
+    sectionId?: string,
+    sectionProblemId?: string  // 🎯 NEW: For test case filtering
 ): Promise<RunResponse & { score: number; maxScore: number }> => {
     console.log(`\n📨 [SUBMIT] Submitting code for problem ${problemId} by user ${userId}`);
+    if (sectionProblemId) {
+        console.log(`   🎯 Using assessment-specific config from sectionProblem: ${sectionProblemId}`);
+    }
 
     const problem = await problemRepo().findOne({ where: { id: problemId } });
     if (!problem) throw { status: 404, message: "Problem not found" };
 
-    const sampleTestcases: TestCase[] = problem.exampleTestcases || [];
-    const hiddenTestcases: TestCase[] = problem.hiddenTestcases || [];
+    const originalExampleCount = problem.exampleTestcases?.length || 0;
+    const originalHiddenCount = problem.hiddenTestcases?.length || 0;
+
+    // 🎯 Get assessment-specific test case configuration
+    let sampleTestcases: TestCase[] = problem.exampleTestcases || [];
+    let hiddenTestcases: TestCase[] = problem.hiddenTestcases || [];
+
+    if (sectionProblemId) {
+        const sectionProblem = await sectionProblemRepo().findOne({
+            where: { id: sectionProblemId },
+            relations: ["problem"]
+        });
+
+        if (sectionProblem && sectionProblem.testCaseConfig) {
+            console.log(`   🎯 [PARTIAL TEST CASES] Applying filter...`);
+            const filtered = getFilteredTestCases(problem, sectionProblem.testCaseConfig);
+            sampleTestcases = filtered.exampleTestcases;
+            hiddenTestcases = filtered.hiddenTestcases;
+
+            console.log(`      Example: ${sampleTestcases.length}/${originalExampleCount} (${Math.round(sampleTestcases.length / originalExampleCount * 100)}%)`);
+            console.log(`      Hidden: ${hiddenTestcases.length}/${originalHiddenCount} (${Math.round(hiddenTestcases.length / originalHiddenCount * 100)}%)`);
+            console.log(`      Config:`, JSON.stringify(sectionProblem.testCaseConfig));
+        } else {
+            console.log(`   📋 [FULL TEST CASES] No config - using all test cases`);
+            console.log(`      Example: ${originalExampleCount} (100%)`);
+            console.log(`      Hidden: ${originalHiddenCount} (100%)`);
+        }
+    } else {
+        console.log(`   📋 [FULL TEST CASES] No sectionProblemId provided - using all test cases`);
+        console.log(`      Example: ${originalExampleCount} (100%)`);
+        console.log(`      Hidden: ${originalHiddenCount} (100%)`);
+    }
+
     const allTestcases = [...sampleTestcases, ...hiddenTestcases];
 
     if (allTestcases.length === 0) throw { status: 400, message: "No testcases available" };
+
+    console.log(`   📊 Total test cases to execute: ${allTestcases.length} (${sampleTestcases.length} example + ${hiddenTestcases.length} hidden)`);
 
     const fullCode = combineCodeWithDriver(code, problem.driverCode as Record<string, string> | null, language);
 

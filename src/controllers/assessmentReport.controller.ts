@@ -8,8 +8,11 @@ import * as reportService from "../services/assessmentReport.service";
  */
 export const getAssessmentReport = async (req: Request, res: Response) => {
     try {
-        const { assessmentId } = req.params;
+        // Support both :assessmentId and :id (common in other routes)
+        const assessmentId = req.params.assessmentId || req.params.id;
         const { page, limit, status, sortBy, sortOrder, search } = req.query;
+
+        console.log(`\n📊 [REPORT] Fetching report for assessment: ${assessmentId}`);
 
         if (!assessmentId) {
             return res.status(400).json({ success: false, message: "assessmentId is required" });
@@ -24,6 +27,9 @@ export const getAssessmentReport = async (req: Request, res: Response) => {
         if (search) options.search = search as string;
 
         const report = await reportService.getAssessmentReport(assessmentId, options);
+
+        console.log(`\n📦 [REPORT_RESPONSE] Sending Assessment Report Data:`);
+        console.log(JSON.stringify(report, null, 2));
 
         res.json({
             success: true,
@@ -54,6 +60,9 @@ export const getParticipantReport = async (req: Request, res: Response) => {
         }
 
         const report = await reportService.getParticipantReport(assessmentId, participantId);
+
+        console.log(`\n📦 [REPORT_RESPONSE] Sending Participant Report Data:`);
+        console.log(JSON.stringify(report, null, 2));
 
         res.json({
             success: true,
@@ -97,6 +106,9 @@ export const updateParticipantVerdict = async (req: Request, res: Response) => {
                 evaluatedBy: user?.id
             }
         );
+
+        console.log(`\n📦 [REPORT_RESPONSE] Sending Updated Participant Verdict Data:`);
+        console.log(JSON.stringify(report, null, 2));
 
         res.json({
             success: true,
@@ -157,12 +169,17 @@ export const exportReport = async (req: Request, res: Response) => {
 
             const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
 
+            console.log(`\n📦 [REPORT_EXPORT] Sending CSV Export`);
+
             res.setHeader("Content-Type", "text/csv");
             res.setHeader("Content-Disposition", `attachment; filename=report-${assessmentId}.csv`);
             return res.send(csv);
         }
 
         // Default: return JSON
+        console.log(`\n📦 [REPORT_EXPORT] Sending JSON Export:`);
+        console.log(JSON.stringify(report, null, 2));
+
         res.json({
             success: true,
             format: "json",

@@ -72,6 +72,54 @@ export const checkAssessmentPlagiarism = async (submissionId: string) => {
             return;
         }
 
+        // 🕒 Validation 1: Check Submission Time vs Assessment Window
+        // Use a 30-minute buffer for Start Date to handle potential timezone mismatches or clock skew
+        // "Submission Created At" is when they clicked "Start". 
+        // If they clicked start 5 mins before official start (allowed by some systems) or due to TZ confusion, we should still allow it.
+        const TIME_BUFFER_MS = 30 * 60 * 1000; // 30 Minutes
+
+        if (assessment.startDate) {
+            const adjustedStartDate = new Date(assessment.startDate.getTime() - TIME_BUFFER_MS);
+
+            if (submission.createdAt < adjustedStartDate) {
+                console.log(`⚠️ [PLAGIARISM] Skipped - Submission started WAY before assessment start date`);
+                console.log(`   Start Date (DB): ${assessment.startDate.toISOString()} (UTC)`);
+                console.log(`   Submission (DB): ${submission.createdAt.toISOString()} (UTC)`);
+                console.log(`   Diff: ${(assessment.startDate.getTime() - submission.createdAt.getTime()) / 1000 / 60} minutes`);
+                return;
+            }
+        }
+
+        if (assessment.endDate && submission.submittedAt && submission.submittedAt > assessment.endDate) {
+            // Allow a small grace period (e.g. 5 mins) for request latency
+            const gracePeriod = 5 * 60 * 1000;
+            const endDateWithGrace = new Date(assessment.endDate.getTime() + gracePeriod);
+
+            if (submission.submittedAt > endDateWithGrace) {
+                console.log(`⚠️ [PLAGIARISM] Skipped - Submission submitted AFTER assessment end date`);
+                console.log(`   End Date: ${endDateWithGrace.toISOString()} | Submission: ${submission.submittedAt.toISOString()}`);
+                return;
+            }
+        }
+
+        // 👤 Validation 2: Unique Submission Check
+        // Ensure this is the LATEST valid submission for this user (prevent duplicates)
+        const latestSubmission = await submissionRepo().findOne({
+            where: {
+                assessmentId: submission.assessmentId,
+                userId: submission.userId
+            },
+            order: { createdAt: "DESC" }
+        });
+
+        if (latestSubmission && latestSubmission.id !== submissionId) {
+            console.log(`⚠️ [PLAGIARISM] Skipped - Use Duplicate/Old Submission`);
+            console.log(`   Current ID: ${submissionId} | Latest ID: ${latestSubmission.id}`);
+            return;
+        }
+
+        console.log(`   ✅ Submission validated: Within time window & Unique`);
+
         // Get all answers for this submission
         const answers = await answerRepo().find({
             where: { submissionId },
@@ -99,7 +147,8 @@ export const checkAssessmentPlagiarism = async (submissionId: string) => {
                 submissionId,
                 submission,
                 answer,
-                assessment.plagiarismConfig
+                assessment.plagiarismConfig,
+                assessment.title // Pass Title
             );
         }
 
@@ -117,7 +166,8 @@ const checkCodingSubmissionPlagiarism = async (
     submissionId: string,
     submission: AssessmentSubmission,
     answer: any,
-    config: any
+    config: any,
+    assessmentTitle: string
 ) => {
     try {
         if (!answer.code) {
@@ -130,7 +180,7 @@ const checkCodingSubmissionPlagiarism = async (
             user_id: submission.userId,
             username: submission.user?.username || submission.user?.email || "Unknown",
             assessment_id: submission.assessmentId,
-            assessment_name: "",  // Will be fetched from assessment
+            assessment_name: assessmentTitle,
             problem_id: answer.questionId || answer.problemId,
             problem_name: answer.question?.text || answer.problem?.title || "Coding Problem",
             code: answer.code,

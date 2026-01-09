@@ -99,7 +99,7 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
         let totalQuestions = 0;
         let totalMarks = 0;
         let sectionCount = 0;
-        
+
         // ⭐ Track section-wise data for console table and for timer logic
         const sectionData_table: Array<{
             Section: string;
@@ -196,15 +196,41 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
                             console.log(`    ✅ Found existing Problem: "${existingProblem.title}" (ID: ${existingProblem.id})`);
 
                             // Create SectionProblem link to the EXISTING problem
+                            // 🎯 Capture test case config if provided
+                            const testCaseConfig = questionData.testCaseConfig || null;
+
                             const sectionProblem = queryRunner.manager.create(SectionProblem, {
                                 section: section,
                                 problem: existingProblem,
                                 marks: questionData.marks || sectionData.marksPerQuestion || 10,
                                 order: questionData.orderIndex !== undefined ? questionData.orderIndex : totalQuestions,
+                                testCaseConfig: testCaseConfig // Save config
                             });
 
                             const savedSectionProblem = await queryRunner.manager.save(sectionProblem) as unknown as SectionProblem;
                             console.log(`    🔗 Linked Problem to Section via SectionProblem: ${savedSectionProblem.id}`);
+
+                            // 🔍 LOG TEST CASE CONFIG DETAILS FOR USER
+                            if (testCaseConfig) {
+                                console.log(`       ⚙️ Test Case Config:`);
+                                if (testCaseConfig.exampleRange) {
+                                    console.log(`          Example Range: [${testCaseConfig.exampleRange.start}, ${testCaseConfig.exampleRange.end}]`);
+                                } else if (testCaseConfig.exampleIndices) {
+                                    console.log(`          Example Indices: [${testCaseConfig.exampleIndices.join(', ')}]`);
+                                } else {
+                                    console.log(`          Example: ALL`);
+                                }
+
+                                if (testCaseConfig.hiddenRange) {
+                                    console.log(`          Hidden Range: [${testCaseConfig.hiddenRange.start}, ${testCaseConfig.hiddenRange.end}]`);
+                                } else if (testCaseConfig.hiddenIndices) {
+                                    console.log(`          Hidden Indices: [${testCaseConfig.hiddenIndices.join(', ')}]`);
+                                } else {
+                                    console.log(`          Hidden: ALL`);
+                                }
+                            } else {
+                                console.log(`       ⚙️ Test Case Config: Using ALL test cases (Default)`);
+                            }
 
                             totalQuestions++;
                             sectionQuestionCount++;
@@ -213,6 +239,16 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
 
                         } else {
                             // HANDLE STANDARD QUESTIONS (MCQ, Fill-blank)
+
+                            // 🔍 DEBUG: Log what we're receiving from frontend
+                            console.log(`    📝 [CREATE_QUESTION] Received from frontend:`);
+                            console.log(`       Text: ${questionData.text?.substring(0, 50)}...`);
+                            console.log(`       Type: ${questionData.type}`);
+                            console.log(`       Pseudocode: ${questionData.pseudocode ? 'YES (' + questionData.pseudocode.substring(0, 30) + '...)' : 'NO (undefined/null)'}`);
+                            console.log(`       Division: ${questionData.division || 'undefined'}`);
+                            console.log(`       Subdivision: ${questionData.subdivision || 'undefined'}`);
+                            console.log(`       Topic: ${questionData.topic || 'undefined'}`);
+
                             const question = queryRunner.manager.create(Question, {
                                 section: section,
                                 text: questionData.text,
@@ -221,6 +257,7 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
                                 options: questionData.options,
                                 correctAnswer: questionData.correctAnswer,
                                 explanation: questionData.explanation,
+                                pseudocode: questionData.pseudocode, // ✅ Include pseudocode
                                 codeStub: questionData.codeStub,
                                 marks: questionData.marks || sectionData.marksPerQuestion || 1,
                                 order: questionData.orderIndex !== undefined ? questionData.orderIndex : totalQuestions,
@@ -233,6 +270,7 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
 
                             await queryRunner.manager.save(question);
                             console.log(`    ✅ Question created (order: ${question.order}, marks: ${question.marks})`);
+                            console.log(`       Saved pseudocode: ${question.pseudocode ? 'YES' : 'NO'}`);
 
                             totalQuestions++;
                             sectionQuestionCount++;
@@ -410,6 +448,11 @@ export const getAssessmentById = async (id: string, organizerId: string): Promis
             sec.problems.forEach(sp => {
                 console.log(`         → problem.id: ${sp.problem?.id}`);
                 console.log(`         → problem.title: ${sp.problem?.title}`);
+                if (sp.testCaseConfig) {
+                    console.log(`           ⚙️ Config: Example=${JSON.stringify(sp.testCaseConfig.exampleRange || sp.testCaseConfig.exampleIndices || "ALL")}, Hidden=${JSON.stringify(sp.testCaseConfig.hiddenRange || sp.testCaseConfig.hiddenIndices || "ALL")}`);
+                } else {
+                    console.log(`           ⚙️ Config: ALL test cases`);
+                }
                 console.log(`         → problem.description: ${sp.problem?.description?.substring(0, 50)}...`);
             });
         }
@@ -639,7 +682,7 @@ export const recalculateTotals = async (assessmentId: string): Promise<void> => 
  */
 export const getPlagiarismConfig = async (assessmentId: string, organizerId: string): Promise<any> => {
     const assessment = await repo().findOne({ where: { id: assessmentId } });
-    
+
     if (!assessment) {
         const err: any = new Error("Assessment not found");
         err.status = 404;
@@ -661,7 +704,7 @@ export const getPlagiarismConfig = async (assessmentId: string, organizerId: str
  */
 export const updatePlagiarismConfig = async (assessmentId: string, organizerId: string, configData: any): Promise<any> => {
     const assessment = await repo().findOne({ where: { id: assessmentId } });
-    
+
     if (!assessment) {
         const err: any = new Error("Assessment not found");
         err.status = 404;
@@ -677,7 +720,7 @@ export const updatePlagiarismConfig = async (assessmentId: string, organizerId: 
 
     // Get current config or default
     const currentConfig = assessment.plagiarismConfig || getDefaultPlagiarismConfig();
-    
+
     // Merge with new data
     const updatedConfig = {
         ...currentConfig,
@@ -704,7 +747,7 @@ export const updatePlagiarismConfig = async (assessmentId: string, organizerId: 
  */
 export const resetPlagiarismConfig = async (assessmentId: string, organizerId: string): Promise<any> => {
     const assessment = await repo().findOne({ where: { id: assessmentId } });
-    
+
     if (!assessment) {
         const err: any = new Error("Assessment not found");
         err.status = 404;

@@ -34,19 +34,31 @@ export const getOrCreateSubmission = async (
     console.log(`\n📝 [SUBMISSION] Getting/creating submission for user ${userId}, assessment ${assessmentId}`);
     if (sessionId) console.log(`   Session ID provided: ${sessionId}`);
 
-    // Check for existing active submission
+    // Check for ANY existing submission for this user/assessment
     const existingSubmission = await submissionRepo().findOne({
         where: {
             assessmentId,
             userId,
-            status: SubmissionStatus.IN_PROGRESS,
         },
+        order: { createdAt: "DESC" }, // Get the latest one
         relations: ["assessment"],
     });
 
     if (existingSubmission) {
-        console.log(`   Found existing submission: ${existingSubmission.id}`);
-        return existingSubmission;
+        // 1. If currently in progress, resume it
+        if (existingSubmission.status === SubmissionStatus.IN_PROGRESS) {
+            console.log(`   ✅ Found active IN_PROGRESS submission: ${existingSubmission.id}, Resuming...`);
+            return existingSubmission;
+        }
+
+        // 2. If already submitted or evaluated, BLOCK new attempt (Strict Mode)
+        if (existingSubmission.status === SubmissionStatus.SUBMITTED || existingSubmission.status === SubmissionStatus.EVALUATED) {
+            console.log(`   🛑 User ${userId} has already completed assessment ${assessmentId}. Blocking retake.`);
+            throw {
+                status: 403,
+                message: "You have already completed this assessment. Retakes are not allowed."
+            };
+        }
     }
 
     // Fetch assessment details for maxScore calculation
@@ -89,6 +101,9 @@ export const getOrCreateSubmission = async (
         }
     }
 
+    // Find first section to auto-start timer (Prevent "peeking" without timer)
+    const firstSection = assessment.sections?.sort((a, b) => (a.order || 0) - (b.order || 0))[0];
+
     // Create new submission
     const newSubmission = submissionRepo().create({
         assessment: { id: assessmentId } as any,
@@ -102,10 +117,17 @@ export const getOrCreateSubmission = async (
         totalScore: 0,
         maxScore,
         percentage: 0,
+        // ⭐ Auto-start first section if available
+        currentSectionId: firstSection?.id,
+        sectionStartedAt: firstSection ? new Date() : undefined
     });
 
     await submissionRepo().save(newSubmission);
     console.log(`   Created new submission: ${newSubmission.id}, maxScore: ${maxScore}`);
+
+    if (firstSection) {
+        console.log(`   ⏱️ [AUTO_START] Automatically started timer for first section: ${firstSection.title}`);
+    }
 
     return newSubmission;
 };
@@ -346,6 +368,16 @@ export const getTimer = async (assessmentId: string, userId: string) => {
         }
     }
 
+    // 🔍 [DEBUG] Log timer status for monitoring validation
+    if (mode === "section") {
+        const currentTimer = sectionTimers.find(s => s.sectionId === submission.currentSectionId);
+        if (currentTimer) {
+            console.log(`   ⏱️ [TIMER] Section '${currentTimer.sectionTitle}': Used ${currentTimer.timeUsed}/${currentTimer.totalTime}s | Global: Used ${globalElapsed}/${globalTotalTime}s`);
+        }
+    } else {
+        console.log(`   ⏱️ [TIMER] Global: Used ${globalElapsed}/${globalTotalTime}s`);
+    }
+
     return {
         mode,
         status: mainStatus,
@@ -355,6 +387,8 @@ export const getTimer = async (assessmentId: string, userId: string) => {
         startedAt: mainStartedAt,
         expiresAt: mainExpiresAt,
         sectionId: submission.currentSectionId,
+        // 👇 New field to easily see both times in API response (Network Tab)
+        displayInfo: `Section Used: ${mainTimeUsed}s | Global Used: ${globalElapsed}s`,
         // Detailed breakdown for strict/proper handling
         global: {
             timeLeft: globalTimeLeft,
@@ -391,6 +425,15 @@ export const saveAnswer = async (
 ): Promise<AssessmentAnswer> => {
     console.log(`\n💾 [SAVE_ANSWER] Saving answer for submission ${submissionId}`);
     console.log(`   Section: ${sectionId}, Question: ${questionId}, Problem: ${problemId}`);
+
+    // Log code submission details specifically
+    if (answer.code) {
+        console.log(`   💻 [CODE_SUBMISSION] Received code:`);
+        console.log(`      Language: ${answer.language}`);
+        console.log(`      Length: ${answer.code.length} chars`);
+        console.log(`      Snippet: ${answer.code.substring(0, 50).replace(/\n/g, ' ')}...`);
+    }
+
     if (answer.marksObtained !== undefined) {
         console.log(`   ⭐ Frontend marks: ${answer.marksObtained}/${answer.maxMarks}`);
     }
@@ -533,6 +576,90 @@ export const saveAnswer = async (
     return newAnswer;
 };
 
+/**
+ * Save detailed coding execution result
+ */
+export const saveCodingResult = async (
+    submissionId: string,
+    problemId: string,
+    resultData: any
+): Promise<AssessmentAnswer> => {
+    // Check if submission exists
+    const submission = await submissionRepo().findOne({
+        where: { id: submissionId },
+        relations: ["assessment", "assessment.sections"]
+    });
+    if (!submission) throw { status: 404, message: "Submission not found" };
+
+    // Find or init answer for this problem
+    let answer = await answerRepo().findOne({
+        where: {
+            submissionId: submissionId,
+            problemId: problemId
+        },
+        relations: ["section"]
+    });
+
+    // Get the actual marks allocated to this problem from SectionProblem
+    let actualMaxMarks = 10; // Default fallback
+    if (answer?.sectionId) {
+        const sectionProblem = await sectionProblemRepo().findOne({
+            where: {
+                problem: { id: problemId },
+                section: { id: answer.sectionId }
+            }
+        });
+        actualMaxMarks = sectionProblem?.marks || 10;
+    }
+
+    if (!answer) {
+        // Need to create new if not exists (should already exist if they viewed question, but safety first)
+        answer = answerRepo().create({
+            submissionId,
+            problemId,
+            status: AnswerStatus.ATTEMPTED,
+            maxMarks: actualMaxMarks
+        });
+    } else {
+        // Update maxMarks to ensure it's correct
+        answer.maxMarks = actualMaxMarks;
+    }
+
+    // 🎯 CRITICAL FIX: Convert percentage score (0-100) to actual marks
+    // resultData.score is always 0-100 (percentage of test cases passed)
+    // We need to convert it to actual marks based on the problem's allocated marks
+    const percentageScore = resultData.score; // 0-100
+    const actualMarksObtained = (percentageScore / 100) * actualMaxMarks;
+
+    console.log(`   🎯 [SCORE_CONVERSION] Problem ${problemId}:`);
+    console.log(`      Percentage Score: ${percentageScore}/100`);
+    console.log(`      Allocated Marks: ${actualMaxMarks}`);
+    console.log(`      Actual Marks Obtained: ${actualMarksObtained.toFixed(2)}`);
+
+    // Update with full coding details
+    answer.code = resultData.code;
+    answer.language = resultData.language;
+    answer.codingResult = {
+        code: resultData.code,
+        language: resultData.language,
+        passedTests: resultData.passedTests,
+        totalTests: resultData.totalTests,
+        status: resultData.status,
+        score: percentageScore, // Keep percentage for reference
+        maxScore: 100, // This is always 100 (percentage)
+        sampleResults: resultData.sampleResults,
+        hiddenSummary: resultData.hiddenSummary
+    };
+    answer.marksObtained = actualMarksObtained; // ✅ Use converted marks, not percentage
+    answer.isCorrect = percentageScore === 100; // 100% means all test cases passed
+    answer.status = AnswerStatus.ATTEMPTED; // Mark as attempted so it shows in report
+
+    await answerRepo().save(answer);
+    console.log(`   💾 [SAVE_CODING_RESULT] Updated problem ${problemId} with score ${actualMarksObtained.toFixed(2)}/${actualMaxMarks} (${percentageScore}% of test cases)`);
+
+    return answer;
+};
+
 // ============================================
 // SUBMIT ASSESSMENT (Final Submit)
 // ============================================
@@ -637,9 +764,23 @@ export const submitAssessment = async (
     await submissionRepo().save(submission);
 
     console.log(`\n📊 [SUBMIT] FINAL RESULTS:`);
-    console.log(`   Total Score: ${submission.totalScore}/${submission.maxScore}`);
-    console.log(`   Percentage: ${submission.percentage.toFixed(2)}%`);
-    console.log(`   Sections: ${sectionScores.length}`);
+    console.log(`   ╔════════════════════════════════════════════════════════╗`);
+    console.log(`   ║              ASSESSMENT SUBMISSION SUMMARY              ║`);
+    console.log(`   ╠════════════════════════════════════════════════════════╣`);
+    console.log(`   ║ Total Score: ${submission.totalScore.toFixed(2)}/${submission.maxScore.toFixed(2)}`.padEnd(60) + `║`);
+    console.log(`   ║ Percentage:  ${submission.percentage.toFixed(2)}%`.padEnd(60) + `║`);
+    console.log(`   ║ Sections:    ${sectionScores.length}`.padEnd(60) + `║`);
+    console.log(`   ╠════════════════════════════════════════════════════════╣`);
+
+    // Show section breakdown
+    sectionScores.forEach(section => {
+        const sectionPercentage = section.totalMarks > 0
+            ? ((section.obtainedMarks / section.totalMarks) * 100).toFixed(2)
+            : '0.00';
+        console.log(`   ║ ${section.sectionTitle.padEnd(20).substring(0, 20)} ${section.obtainedMarks.toFixed(2)}/${section.totalMarks.toFixed(2)} (${sectionPercentage}%)`.padEnd(60) + `║`);
+    });
+
+    console.log(`   ╚════════════════════════════════════════════════════════╝`);
 
     // 🕵️ Trigger plagiarism check for coding submissions (async, non-blocking)
     console.log(`\n🕵️ [PLAGIARISM] Initiating plagiarism check for coding problems...`);
@@ -693,12 +834,50 @@ const evaluateMCQAnswers = async (answers: AssessmentAnswer[]): Promise<void> =>
             // Single choice: Compare directly
             isCorrect = answer.selectedAnswer === correctAnswer;
         } else if (question.type === QuestionType.MULTIPLE_CHOICE) {
-            // Multiple choice: Compare arrays
-            const selected = Array.isArray(answer.selectedAnswer) ? answer.selectedAnswer : [answer.selectedAnswer];
-            const correct = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
-            isCorrect = selected.length === correct.length &&
-                selected.every(s => correct.includes(s)) &&
-                correct.every(c => selected.includes(c));
+            // Multiple choice: Parse and compare arrays
+            const selected = Array.isArray(answer.selectedAnswer)
+                ? answer.selectedAnswer
+                : [answer.selectedAnswer];
+
+            // Parse correctAnswer - it might be stored as:
+            // - Array: ["1","3"]
+            // - Comma-separated string: "1,3"
+            // - JSON string: '["1","3"]'
+            let correct: string[] = [];
+
+            if (Array.isArray(correctAnswer)) {
+                correct = correctAnswer.map(c => String(c).trim());
+            } else if (typeof correctAnswer === 'string') {
+                const trimmed = correctAnswer.trim();
+                // Check if it's a JSON array
+                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        correct = Array.isArray(parsed) ? parsed.map(c => String(c).trim()) : [trimmed];
+                    } catch {
+                        // If JSON parse fails, treat as comma-separated
+                        correct = trimmed.split(',').map(c => c.trim()).filter(c => c.length > 0);
+                    }
+                } else if (trimmed.includes(',')) {
+                    // Comma-separated: "1,3" or "A,C"
+                    correct = trimmed.split(',').map(c => c.trim()).filter(c => c.length > 0);
+                } else {
+                    // Single value
+                    correct = [trimmed];
+                }
+            } else {
+                correct = [String(correctAnswer).trim()];
+            }
+
+            // Normalize both arrays to strings for comparison
+            const selectedNormalized = selected.map(s => String(s).trim()).sort();
+            const correctNormalized = correct.map(c => String(c).trim()).sort();
+
+            // Compare: same length and all elements match
+            isCorrect = selectedNormalized.length === correctNormalized.length &&
+                selectedNormalized.every((s, idx) => s === correctNormalized[idx]);
+
+            console.log(`   🎯 Multiple Choice: Selected=[${selectedNormalized.join(',')}], Correct=[${correctNormalized.join(',')}], Match=${isCorrect}`);
         } else if (question.type === QuestionType.FILL_IN_THE_BLANK) {
             // Fill-in-blank: Case-insensitive comparison
             const userAnswer = String(answer.selectedAnswer).toLowerCase().trim();
@@ -732,9 +911,12 @@ const evaluateMCQAnswers = async (answers: AssessmentAnswer[]): Promise<void> =>
  * Evaluate all coding answers using the code execution service
  */
 const evaluateCodingAnswers = async (answers: AssessmentAnswer[]): Promise<void> => {
-    console.log(`\n💻 [EVALUATE_CODING] Evaluating coding answers...`);
+    console.log(`\n💻 [EVALUATE_CODING] Checking coding answers (Verification Only)...`);
 
-    const codingAnswers = answers.filter(a => a.problemId && a.code);
+    const codingAnswers = answers.filter(a =>
+        (a.problemId || (a.question && a.question.type === "coding")) &&
+        a.code
+    );
 
     for (const answer of codingAnswers) {
         if (!answer.code || !answer.language) {
@@ -743,63 +925,46 @@ const evaluateCodingAnswers = async (answers: AssessmentAnswer[]): Promise<void>
             continue;
         }
 
-        try {
-            // Execute code against test cases
-            const result = await codeExecutionService.submitCode(
-                answer.problemId!,
-                answer.code,
-                answer.language,
-                answer.submission?.userId || "",
-                answer.submission?.assessmentId,
-                answer.sectionId
-            );
+        // 🎯 FIX: Do NOT re-execute code here.
+        // We rely on the fact that the user MUST have clicked "Submit" on the coding problem
+        // during the test. That action saves the result (codingResult) and marksObtained.
 
-            // Calculate score based on test cases passed
-            const passedPercentage = result.summary.total > 0
-                ? (result.summary.passed / result.summary.total)
-                : 0;
+        // If the answer has a codingResult OR marksObtained, we trust it.
+        // If it accepts "raw code" without submission, we can either:
+        // A) Treat it as 0 (User didn't submit) -> PREFERRED for "professional" behavior
+        // B) Try to run it now (Risky, might timeout or use wrong config)
 
-            // Get max marks for this problem
-            const sectionProblem = await sectionProblemRepo().findOne({
-                where: { problem: { id: answer.problemId! }, section: { id: answer.sectionId } },
-            });
-            const maxMarks = sectionProblem?.marks || 100;
+        const hasResult = answer.codingResult && answer.codingResult.totalTests !== undefined;
+        const hasMarks = answer.marksObtained !== null && answer.marksObtained !== undefined;
 
-            answer.marksObtained = Math.round(maxMarks * passedPercentage);
-            answer.maxMarks = maxMarks;
-            answer.isCorrect = result.success;
+        if (hasResult || hasMarks) {
+            console.log(`   ✅ [CACHED] Problem ${answer.problemId?.slice(0, 8)} already evaluated.`);
+            console.log(`      Score: ${answer.marksObtained}/${answer.maxMarks}, Tests: ${answer.codingResult?.passedTests}/${answer.codingResult?.totalTests}`);
+            // Ensure status is correct
             answer.status = AnswerStatus.EVALUATED;
-            answer.codingResult = {
-                language: answer.language,
-                code: answer.code,
-                passedTests: result.summary.passed,
-                totalTests: result.summary.total,
-                status: result.success ? "accepted" : "wrong_answer",
-                score: answer.marksObtained,
-                maxScore: maxMarks,
-                sampleResults: result.sampleResults,
-                hiddenSummary: result.hiddenSummary,
-            };
-
             await answerRepo().save(answer);
-
-            console.log(`   ${result.success ? "✅" : "❌"} Problem ${answer.problemId?.slice(0, 8)}: ${result.summary.passed}/${result.summary.total} tests, ${answer.marksObtained}/${maxMarks} marks`);
-
-        } catch (error: any) {
-            console.error(`   ❌ Error evaluating coding answer ${answer.id}:`, error.message);
-            answer.marksObtained = 0;
-            answer.isCorrect = false;
-            answer.codingResult = {
-                language: answer.language,
-                code: answer.code,
-                passedTests: 0,
-                totalTests: 0,
-                status: "error",
-                score: 0,
-                maxScore: answer.maxMarks,
-            };
-            await answerRepo().save(answer);
+            continue;
         }
+
+        // Fallback for "Raw Code" that was typed but never submitted
+        console.warn(`   ⚠️ [UNSUBMITTED] Problem ${answer.problemId?.slice(0, 8)} has code but was NOT submitted by user.`);
+        console.warn(`      Marking as 0. Users must explicitly 'Submit' coding solutions.`);
+
+        answer.marksObtained = 0;
+        answer.isCorrect = false;
+        answer.status = AnswerStatus.EVALUATED;
+        answer.codingResult = {
+            language: answer.language,
+            code: answer.code,
+            passedTests: 0,
+            totalTests: 0,
+            status: "not_submitted",
+            score: 0,
+            maxScore: answer.maxMarks || 100,
+            sampleResults: [],
+        };
+
+        await answerRepo().save(answer);
     }
 };
 
@@ -865,14 +1030,27 @@ const calculateSectionScores = async (
         let correctAnswers = 0;
         let wrongAnswers = 0;
         let unattempted = 0;
+        // Fetch submission to get usage stats
+        const submission = await submissionRepo().findOne({ where: { assessmentId: assessmentId } });
+
         let timeTaken = 0; // ✅ Added to track section time
 
-        for (const answer of sectionAnswers) {
-            // Aggregate time spent
-            if (answer.timeSpent) {
-                timeTaken += answer.timeSpent;
+        // Priority 1: Use server-side tracked timer usage (most accurate)
+        if (submission?.sectionUsage && submission.sectionUsage[section.id]) {
+            timeTaken = submission.sectionUsage[section.id];
+            console.log(`   ⏱️ Using server-tracked time for section ${section.title}: ${timeTaken}s`);
+        } else {
+            // Priority 2: Fallback to sum of timeSpent from answers (if legacy or no timer)
+            for (const answer of sectionAnswers) {
+                // Aggregate time spent
+                if (answer.timeSpent) {
+                    timeTaken += answer.timeSpent;
+                }
             }
+        }
 
+        // Calculate score stats by iterating answers
+        for (const answer of sectionAnswers) {
             if (answer.status === AnswerStatus.UNATTEMPTED || (!answer.selectedAnswer && !answer.code)) {
                 unattempted++;
             } else if (answer.isCorrect) {

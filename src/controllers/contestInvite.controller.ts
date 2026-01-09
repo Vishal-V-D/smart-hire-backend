@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import * as inviteService from "../services/contestInvite.service";
 import { isValidUUID } from "../utils/validation.util";
+import fs from 'fs';
+import csv from 'csv-parser';
 
 /** 📨 Send invitation to a user */
 export const sendInvitation = async (req: Request, res: Response) => {
@@ -32,7 +34,74 @@ export const sendInvitation = async (req: Request, res: Response) => {
     }
 };
 
-/** 📨 Send bulk invitations */
+/** 📨 Send bulk invitations via CSV */
+export const sendBulkInvitationsCSV = async (req: Request, res: Response) => {
+    try {
+        const { contestId } = req.params;
+        const file = req.file;
+
+        if (!isValidUUID(contestId)) {
+            res.status(400).json({ message: "Invalid contest ID format" });
+            return;
+        }
+
+        if (!file) {
+            res.status(400).json({ message: "CSV file is required" });
+            return;
+        }
+
+        const emails: string[] = [];
+        const user = (req as any).user;
+
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        const uniqueEmails = new Set<string>();
+
+        fs.createReadStream(file.path)
+            .pipe(csv({ headers: false })) // 🧠 Intelligent Mode: Ignore structure/headers
+            .on('data', (row: any) => {
+                // Scan EVERY cell in the row for an email
+                // This handles cases where data starts at line 10, or is in the 3rd column
+                Object.values(row).forEach((cell: any) => {
+                    if (typeof cell === 'string') {
+                        const potentialEmail = cell.trim();
+                        // Check if it LOOKS like an email (fast check + strict regex)
+                        if (potentialEmail.includes('@') && emailRegex.test(potentialEmail)) {
+                            uniqueEmails.add(potentialEmail.toLowerCase());
+                        }
+                    }
+                });
+            })
+            .on('end', async () => {
+                // Clean up file
+                if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+
+                const emails = Array.from(uniqueEmails);
+
+                if (emails.length === 0) {
+                    return res.status(400).json({ message: "No valid emails found. Please check your CSV file." });
+                }
+
+                try {
+                    console.log(`📂 [CSV Invite] intelligently extracted ${emails.length} unique emails`);
+                    const results = await inviteService.sendBulkInvitations(contestId, emails, user.id);
+                    res.status(200).json({ message: "Bulk invitations processed", results });
+                } catch (err: any) {
+                    console.error(`❌ [CSV Invite] Error sending invites:`, err);
+                    res.status(500).json({ message: "Error processing invitations" });
+                }
+            })
+            .on('error', (err: any) => {
+                console.error(`❌ [CSV Invite] Error parsing CSV:`, err);
+                res.status(500).json({ message: "Error parsing CSV file" });
+            });
+
+    } catch (err: any) {
+        console.error(`❌ [CSV Invite] Error:`, err);
+        res.status(err.status || 500).json({ message: err.message || "Error processing CSV" });
+    }
+};
+
+/** 📨 Send bulk invitations JSON */
 export const sendBulkInvitations = async (req: Request, res: Response) => {
     try {
         const { contestId } = req.params;

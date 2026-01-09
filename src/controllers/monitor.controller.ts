@@ -87,6 +87,9 @@ export const getAssessmentViolationStats = async (req: Request, res: Response) =
 
         const stats = await monitorService.getViolationStatsForAssessment(assessmentId);
 
+        console.log(`\n📦 [VIOLATION_STATS] Sending Stats Payload:`);
+        console.log(JSON.stringify(stats, null, 2));
+
         res.json({
             success: true,
             ...stats,
