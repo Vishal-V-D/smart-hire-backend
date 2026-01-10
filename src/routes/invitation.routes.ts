@@ -79,6 +79,13 @@ router.patch("/:id", authenticate, authorize("ORGANIZER"), invitationCtrl.update
 router.delete("/:id", authenticate, authorize("ORGANIZER"), invitationCtrl.cancelInvitation);
 
 /**
+ * @route   DELETE /api/invitations/:id/delete
+ * @desc    Permanently delete single invitation
+ * @access  Organizer
+ */
+router.delete("/:id/delete", authenticate, authorize("ORGANIZER"), invitationCtrl.deleteInvitation);
+
+/**
  * @route   POST /api/invitations/:id/resend
  * @desc    Resend invitation email
  * @access  Organizer

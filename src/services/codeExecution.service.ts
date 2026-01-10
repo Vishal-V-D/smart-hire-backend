@@ -4,9 +4,16 @@ import { Problem } from "../entities/problem.entity";
 import { SectionProblem } from "../entities/SectionProblem.entity";
 import { getFilteredTestCases } from "./sectionProblem.service";
 
-const JUDGE0_API_URL = process.env.JUDGE0_API_URL || "https://ce.judge0.com";
+const JUDGE0_API_URL = process.env.JUDGE0_API_URL || "https://judge.decodex.live";
 const JUDGE0_MAX_RETRIES = parseInt(process.env.JUDGE0_MAX_RETRIES || "40");
 const JUDGE0_POLL_INTERVAL = parseInt(process.env.JUDGE0_POLL_INTERVAL || "3000"); // 3s polling
+
+// Optional: Auth headers for private Judge0 instances
+const judge0Headers = {
+    "Content-Type": "application/json",
+    ...(process.env.JUDGE0_AUTH_TOKEN ? { "X-Auth-Token": process.env.JUDGE0_AUTH_TOKEN } : {}),
+    ...(process.env.JUDGE0_AUTH_USER ? { "X-Auth-User": process.env.JUDGE0_AUTH_USER } : {}),
+};
 
 const problemRepo = () => AppDataSource.getRepository(Problem);
 const sectionProblemRepo = () => AppDataSource.getRepository(SectionProblem);
@@ -163,6 +170,7 @@ const submitBatchToJudge0 = async (
     testcases: TestCase[]
 ): Promise<string[]> => {
     try {
+        console.log(`\n   🌍 [JUDGE0] Using Endpoint: ${JUDGE0_API_URL}`);
         console.log(`\n   📡 [JUDGE0 BATCH] Submitting ${testcases.length} inputs...`);
 
         const submissions = testcases.map(tc => ({
@@ -170,6 +178,7 @@ const submitBatchToJudge0 = async (
             language_id: languageId,
             stdin: Buffer.from(tc.input).toString("base64"),
             expected_output: tc.output ? Buffer.from(tc.output).toString("base64") : undefined,
+            enable_network: false, // 🔧 Try disabling network to fix "Operation not permitted" error
         }));
 
         // Log batch details
@@ -182,7 +191,7 @@ const submitBatchToJudge0 = async (
 
         const response = await axios.post(`${JUDGE0_API_URL}/submissions/batch?base64_encoded=true`, {
             submissions
-        });
+        }, { headers: judge0Headers });
 
         // Response is array of objects: [{token: "..." }, {token: "..."}]
         const tokens = response.data.map((item: any) => item.token);
@@ -205,7 +214,8 @@ const pollBatchJudge0Result = async (tokens: string[]): Promise<any[]> => {
 
         try {
             const response = await axios.get(
-                `${JUDGE0_API_URL}/submissions/batch?tokens=${tokenString}&base64_encoded=true&fields=token,status,stdout,stderr,compile_output,time,memory`
+                `${JUDGE0_API_URL}/submissions/batch?tokens=${tokenString}&base64_encoded=true&fields=token,status,stdout,stderr,compile_output,time,memory`,
+                { headers: judge0Headers }
             );
 
             // Response.data.submissions is array of results

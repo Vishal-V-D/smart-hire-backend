@@ -102,7 +102,8 @@ export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
 export const generateInvitationEmail = (params: {
     name?: string;
     assessmentTitle: string;
-    organizerName: string;
+    organizationName: string;
+    organizerUsername: string;
     inviteLink: string;
     expiresAt: Date;
 }): { html: string; text: string } => {
@@ -118,64 +119,125 @@ export const generateInvitationEmail = (params: {
 
     const html = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f4f4f4; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0; }
-        .header h1 { margin: 0; font-size: 28px; }
-        .content { background: white; padding: 40px 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .assessment-title { font-size: 24px; color: #667eea; margin: 20px 0; font-weight: 600; }
-        .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 16px 40px; text-decoration: none; border-radius: 8px; margin: 25px 0; font-weight: 600; font-size: 16px; }
-        .btn:hover { opacity: 0.9; }
-        .expiry { background: #fff8e1; border-left: 4px solid #ffc107; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
-        .footer { text-align: center; color: #888; font-size: 12px; margin-top: 30px; padding: 20px; }
-        .link-fallback { word-break: break-all; color: #667eea; font-size: 14px; background: #f5f5f5; padding: 10px; border-radius: 4px; }
-    </style>
+    <title>Assessment Invitation - SmartHire</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📋 Assessment Invitation</h1>
-        </div>
-        <div class="content">
-            <p style="font-size: 16px;">${greeting}</p>
-            <p>You have been invited by <strong>${params.organizerName}</strong> to participate in an assessment:</p>
-            <p class="assessment-title">${params.assessmentTitle}</p>
-            <p>Click the button below to accept your invitation and start the assessment:</p>
-            <p style="text-align: center;">
-                <a href="${params.inviteLink}" class="btn">Accept Invitation</a>
-            </p>
-            <div class="expiry">
-                ⏳ <strong>Expires:</strong> ${expiryDate}
-            </div>
-            <p style="font-size: 14px; color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
-            <p class="link-fallback">${params.inviteLink}</p>
-        </div>
-        <div class="footer">
-            <p>This is an automated message from SecureHire Assessment Platform.</p>
-            <p>If you didn't expect this invitation, please ignore this email.</p>
-        </div>
-    </div>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+      <tr>
+        <td align="center">
+          
+          <!-- Main Container -->
+          <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="padding: 40px 40px 30px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+                <h1 style="margin: 0 0 8px; font-size: 24px; font-weight: 600; color: #111827; letter-spacing: -0.5px;">SmartHire</h1>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">Technical Assessment Platform</p>
+              </td>
+            </tr>
+            
+            <!-- Content -->
+            <tr>
+              <td style="padding: 40px;">
+                
+                <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #111827;">You're invited to an assessment</h2>
+                
+                <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.6; color: #374151;">
+                  ${greeting}
+                </p>
+                
+                <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #374151;">
+                  You've been invited by <strong>${params.organizationName}</strong> to participate in a technical assessment. This is your opportunity to demonstrate your skills.
+                </p>
+                
+                <!-- Assessment Card -->
+                <div style="margin: 0 0 32px; padding: 20px; background-color: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px;">
+                  <h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #1e40af;">${params.assessmentTitle}</h3>
+                  <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                    <strong>Organizer:</strong> ${params.organizerUsername}<br/>
+                    <strong>Expires:</strong> ${expiryDate}
+                  </p>
+                </div>
+                
+                <!-- Button -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" style="padding: 0 0 32px;">
+                      <a href="${params.inviteLink}" style="display: inline-block; padding: 14px 32px; background-color: #6366f1; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">Accept Invitation</a>
+                    </td>
+                  </tr>
+                </table>
+                
+                <!-- Preparation Tips -->
+                <div style="margin: 0 0 32px; padding: 20px; background-color: #f9fafb; border-radius: 4px;">
+                  <p style="margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #111827;">Before you start:</p>
+                  <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; color: #374151;">
+                    <li>Ensure you have a stable internet connection</li>
+                    <li>Find a quiet, distraction-free environment</li>
+                    <li>Have your materials and setup ready</li>
+                    <li>Review any instructions carefully</li>
+                  </ul>
+                </div>
+                
+                <!-- Divider -->
+                <div style="height: 1px; background-color: #e5e7eb; margin: 32px 0;"></div>
+                
+                <!-- Alternative Link -->
+                <p style="margin: 0 0 12px; font-size: 13px; color: #6b7280;">
+                  Or copy and paste this link:
+                </p>
+                <p style="margin: 0; padding: 12px; background-color: #f9fafb; border-radius: 4px; font-size: 13px; color: #6366f1; word-break: break-all; font-family: 'Courier New', monospace;">
+                  ${params.inviteLink}
+                </p>
+                
+              </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 32px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: center;">
+                <p style="margin: 0 0 8px; font-size: 13px; color: #6b7280;">
+                  SmartHire · Modern Technical Assessment Platform
+                </p>
+                <p style="margin: 0; font-size: 13px; color: #9ca3af;">
+                  <a href="${FRONTEND_URL}" style="color: #6366f1; text-decoration: none;">Dashboard</a> · 
+                  <a href="${FRONTEND_URL}/support" style="color: #6366f1; text-decoration: none;">Support</a>
+                </p>
+                <p style="margin: 16px 0 0; font-size: 12px; color: #9ca3af;">
+                  © ${new Date().getFullYear()} SmartHire. All rights reserved.
+                </p>
+              </td>
+            </tr>
+            
+          </table>
+          
+        </td>
+      </tr>
+    </table>
+    
 </body>
 </html>`;
 
     const text = `
 ${greeting}
 
-You have been invited by ${params.organizerName} to participate in an assessment:
+You have been invited by ${params.organizationName} to participate in an assessment:
 
 ${params.assessmentTitle}
+Organizer: ${params.organizerUsername}
 
 Accept your invitation: ${params.inviteLink}
 
 This invitation expires on: ${expiryDate}
 
 ---
-SecureHire Assessment Platform
+SmartHire Assessment Platform
 `;
 
     return { html, text };

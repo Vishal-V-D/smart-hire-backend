@@ -50,16 +50,8 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:3000",
   "http://localhost:3001",
-  "https://code-volt.vercel.app",
-  "https://codevolt-submission-service.onrender.com", "https://codevolt-user-service.onrender.com"
-  ,
-  "https://codevolt-secure.vercel.app",
-  "https://code-volt-git-main-vishal-v-ds-projects.vercel.app",
-  "http://localhost:4000",
-  "http://quantum-judge-alb-dev-233767472.us-east-1.elb.amazonaws.com:5000",
-  "http://quantum-judge-alb-dev-233767472.us-east-1.elb.amazonaws.com:4000",
-  "http://quantum-judge-alb-dev-233767472.us-east-1.elb.amazonaws.com:8000",
-  "http://quantum-judge-frontend-dev.s3-website-us-east-1.amazonaws.com",
+"https://smart-hire-proctoring-platform.vercel.app",
+ 
   "https://dk1cx0l60ut7o.cloudfront.net"
 ];
 

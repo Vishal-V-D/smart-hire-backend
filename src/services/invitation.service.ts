@@ -119,7 +119,8 @@ export const sendInvitationEmail = async (invitation: AssessmentInvitation): Pro
     const { html, text } = generateInvitationEmail({
         name: invitation.name,
         assessmentTitle: invitation.assessment.title,
-        organizerName: invitation.invitedBy?.organizationName || invitation.invitedBy?.username || "Organizer",
+        organizationName: invitation.invitedBy?.organizationName || "Organization",
+        organizerUsername: invitation.invitedBy?.username || "Organizer",
         inviteLink,
         expiresAt: invitation.expiresAt,
     });
@@ -302,6 +303,20 @@ export const cancelInvitation = async (id: string): Promise<AssessmentInvitation
 
     console.log(`✅ [INVITATION] Cancelled invitation ${id}`);
     return invitation;
+};
+
+/**
+ * Hard delete invitation
+ */
+export const deleteInvitation = async (id: string): Promise<void> => {
+    const invitation = await getInvitationById(id);
+
+    if (invitation.status === InvitationStatus.ACCEPTED) {
+        throw { status: 400, message: "Cannot delete an accepted invitation" };
+    }
+
+    await repo().remove(invitation);
+    console.log(`🗑️ [INVITATION] Deleted invitation ${id}`);
 };
 
 /**

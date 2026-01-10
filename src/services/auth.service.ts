@@ -241,17 +241,23 @@ export const registerOrganizer = async (
   }
 
   const hashedPassword = await hashPassword(password);
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+
   const user = repo().create({
     email,
     username,
     password: hashedPassword,
     role: UserRole.ORGANIZER,
     organizationName,
-    isVerified: true, // Auto-verify organizers
+    isVerified: false, // Require email verification
+    verificationToken,
   });
 
   await repo().save(user);
   console.log(`✅ [REGISTER_ORGANIZER] User created: ${user.id}`);
+
+  // Send verification email
+  await sendVerificationEmail(email, verificationToken);
 
   return user;
 };

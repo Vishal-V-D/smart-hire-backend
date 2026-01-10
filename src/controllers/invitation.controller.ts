@@ -173,6 +173,25 @@ export const cancelInvitation = async (req: Request, res: Response) => {
 };
 
 /**
+ * DELETE /api/invitations/:id/delete
+ * Hard delete invitation
+ */
+export const deleteInvitation = async (req: Request, res: Response) => {
+    try {
+        console.log(`🗑️ [DELETE_INVITATION] Deleting ${req.params.id}...`);
+
+        await invitationService.deleteInvitation(req.params.id);
+
+        res.json({ message: "Invitation deleted permanently" });
+    } catch (err: any) {
+        console.error("❌ [DELETE_INVITATION] Error:", err);
+        res.status(err.status || 500).json({
+            error: { code: err.status === 400 ? "VALIDATION_ERROR" : "SERVER_ERROR", message: err.message },
+        });
+    }
+};
+
+/**
  * DELETE /api/invitations/bulk
  * Bulk cancel invitations
  */
