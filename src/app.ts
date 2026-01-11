@@ -37,6 +37,7 @@ import assessmentReportRoutes from "./routes/assessmentReport.routes";
 import authenticationRoutes from "./routes/authentication.routes";
 import sectionProblemRoutes from "./controllers/sectionProblem.controller";
 import sqlExecutionRoutes from "./routes/sqlExecution.routes";
+import companyRoutes from "./routes/company.routes";
 
 dotenv.config();
 
@@ -50,8 +51,8 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:3000",
   "http://localhost:3001",
-"https://smart-hire-proctoring-platform.vercel.app",
- 
+  "https://smart-hire-proctoring-platform.vercel.app",
+
   "https://dk1cx0l60ut7o.cloudfront.net"
 ];
 
@@ -148,6 +149,13 @@ app.use("/api/admin", assessmentReportRoutes);
 
 // 🎯 Section Problem API (Test case configuration for coding problems)
 app.use("/api/section-problems", sectionProblemRoutes);
+
+// 🏢 Company Management API
+app.use("/api/companies", companyRoutes);
+
+// 🔔 Notification API
+import notificationRoutes from "./routes/notification.routes";
+app.use("/api/notifications", notificationRoutes);
 
 // ❌ Centralized Error Handling + Logging
 app.use((err: any, req: any, res: any, next: any) => {

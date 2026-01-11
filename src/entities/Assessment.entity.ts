@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 import { User } from "./user.entity";
 import { AssessmentSection } from "./AssessmentSection.entity";
+import { Company } from "./Company.entity";
 
 // Proctoring configuration interface
 // Proctoring configuration interface
@@ -63,6 +64,12 @@ export class Assessment {
     @ManyToOne(() => User, { onDelete: "SET NULL", eager: true })
     organizer: User;
 
+    @ManyToOne(() => Company, { nullable: true, onDelete: "CASCADE" })
+    company: Company;
+
+    @Column({ nullable: true })
+    companyId: string;
+
     @Column({ length: 200 })
     title: string;
 
@@ -102,18 +109,20 @@ export class Assessment {
     proctoring: ProctoringConfig;
 
     // 🕵️ Plagiarism Detection Configuration for Coding Questions
-    @Column({ type: "jsonb", nullable: true, default: {
-        enabled: true,
-        strictness: "Medium",
-        similarityThreshold: 75,
-        aiSensitivity: "Medium",
-        reportConfig: {
-            includeSourceCode: true,
-            includeMatches: true,
-            includeAiAnalysis: true,
-            includeVerdict: true
+    @Column({
+        type: "jsonb", nullable: true, default: {
+            enabled: true,
+            strictness: "Medium",
+            similarityThreshold: 75,
+            aiSensitivity: "Medium",
+            reportConfig: {
+                includeSourceCode: true,
+                includeMatches: true,
+                includeAiAnalysis: true,
+                includeVerdict: true
+            }
         }
-    }})
+    })
     plagiarismConfig: {
         enabled?: boolean;
         strictness?: "Low" | "Medium" | "High";

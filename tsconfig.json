@@ -15,6 +15,7 @@
   "exclude": [
     "debug_problem.ts",
     "fix_driver.ts",
-    "test-judge0.ts"
+    "test-judge0.ts",
+    "scripts"
   ]
 }

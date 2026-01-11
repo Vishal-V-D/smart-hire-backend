@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as questionBankCtrl from "../controllers/questionBank.controller";
 import * as questionUploadCtrl from "../controllers/questionUpload.controller";
-import { authenticate } from "../middleware/auth.middleware";
+import { authenticate, checkCompanyPermission } from "../middleware/auth.middleware";
 import { authorize } from "../middleware/role.middleware";
 import { uploadCSV, uploadZIP } from "../middleware/upload.middleware";
 
@@ -24,16 +24,16 @@ router.post("/upload/zip", authenticate, authorize("ORGANIZER"), uploadZIP, ques
 /**
  * @route   GET /api/question-bank/filter-options
  * @desc    Get unique filter values for dropdowns
- * @access  Organizer
+ * @access  Organizer OR Company Admin with 'createAssessment'
  */
-router.get("/filter-options", authenticate, authorize("ORGANIZER"), questionBankCtrl.getFilterOptions);
+router.get("/filter-options", authenticate, checkCompanyPermission("createAssessment"), questionBankCtrl.getFilterOptions);
 
 /**
  * @route   GET /api/question-bank/stats
  * @desc    Get question statistics (counts by division, difficulty, etc.)
- * @access  Organizer
+ * @access  Organizer OR Company Admin with 'createAssessment'
  */
-router.get("/stats", authenticate, authorize("ORGANIZER"), questionBankCtrl.getStats);
+router.get("/stats", authenticate, checkCompanyPermission("createAssessment"), questionBankCtrl.getStats);
 
 /**
  * @route   DELETE /api/question-bank/bulk
@@ -46,17 +46,17 @@ router.delete("/bulk", authenticate, authorize("ORGANIZER"), questionBankCtrl.bu
 /**
  * @route   GET /api/question-bank
  * @desc    List questions with filters and pagination
- * @access  Organizer
+ * @access  Organizer OR Company Admin with 'createAssessment'
  * @query   division, subdivision, subdivisions, topic, tags (comma-separated), difficulty, type, search, page, limit
  */
-router.get("/", authenticate, authorize("ORGANIZER"), questionBankCtrl.listQuestions);
+router.get("/", authenticate, checkCompanyPermission("createAssessment"), questionBankCtrl.listQuestions);
 
 /**
  * @route   GET /api/question-bank/:id
  * @desc    Get question by ID
- * @access  Organizer
+ * @access  Organizer OR Company Admin with 'createAssessment'
  */
-router.get("/:id", authenticate, authorize("ORGANIZER"), questionBankCtrl.getQuestionById);
+router.get("/:id", authenticate, checkCompanyPermission("createAssessment"), questionBankCtrl.getQuestionById);
 
 /**
  * @route   PATCH /api/question-bank/:id

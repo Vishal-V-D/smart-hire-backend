@@ -4,7 +4,8 @@ import { authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.post("/signup/organizer", authCtrl.registerOrganizer);
+// Organizer registration removed - single organizer account is pre-seeded
+// router.post("/signup/organizer", authCtrl.registerOrganizer);
 router.post("/signup/contestant", authCtrl.registerContestant);
 router.post("/login", authCtrl.login);
 router.post("/google", authCtrl.googleAuth); // ✅ Google Auth endpoint

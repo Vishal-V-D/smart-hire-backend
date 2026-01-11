@@ -16,7 +16,7 @@ export class ContestantProfile {
     @PrimaryGeneratedColumn("uuid")
     id: string;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: "CASCADE" })
     @JoinColumn()
     user: User;
 

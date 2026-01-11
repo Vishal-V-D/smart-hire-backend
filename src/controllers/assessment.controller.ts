@@ -37,15 +37,15 @@ export const listAssessments = async (req: Request, res: Response) => {
         // For ADMIN/COMPANY users, get only assessments they have access to
         if (user.role === 'ADMIN' || user.role === 'COMPANY') {
             console.log(`[LIST_ASSESSMENTS] User is ${user.role}, filtering by access`);
-            
+
             // Get accessible assessments for this admin
             const accessibleAssessments = await adminAccessService.getAccessibleAssessments(
                 user.id,
                 user.assignedOrganizerId || user.id
             );
-            
+
             console.log(`[LIST_ASSESSMENTS] Found ${accessibleAssessments.length} accessible assessments`);
-            
+
             // Return assessments with pagination info
             return res.json({
                 assessments: accessibleAssessments,
@@ -86,7 +86,7 @@ export const getAssessment = async (req: Request, res: Response) => {
         // For ADMIN/COMPANY, check if they have access to this assessment
         if (user.role === 'ADMIN' || user.role === 'COMPANY') {
             console.log(`[GET_ASSESSMENT] User is ${user.role}, checking access`);
-            
+
             const canAccess = await adminAccessService.canAdminAccessAssessment(
                 user.id,
                 assessmentId,
@@ -103,9 +103,11 @@ export const getAssessment = async (req: Request, res: Response) => {
             }
 
             // Get assessment using organizer ID (not admin ID)
+            // We can skip ownership check here because we ALREADY validated it above via adminAccessService
             const assessment = await assessmentService.getAssessmentById(
                 assessmentId,
-                user.assignedOrganizerId
+                user.assignedOrganizerId || "", // Organizer ID might not be needed if skipping check
+                true // ✅ Skip redundant check
             );
             return res.json(assessment);
         }

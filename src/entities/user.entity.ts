@@ -6,8 +6,10 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToMany,
+  ManyToOne,
 } from "typeorm";
 import { Contest } from "./contest.entity";
+import { Company } from "./Company.entity";
 
 export enum UserRole {
   ORGANIZER = "ORGANIZER",
@@ -72,6 +74,13 @@ export class User {
 
   @Column({ default: "Student" })
   rank: string;
+
+  // New relation for Company Admins
+  @ManyToOne(() => Company, (company) => company.users, { nullable: true })
+  company: Company;
+
+  @Column({ nullable: true })
+  companyId: string;
 
   // 🔐 ADMIN/AUTHENTICATION FIELDS
   @Column({ nullable: true })

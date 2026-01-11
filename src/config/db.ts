@@ -28,7 +28,10 @@ import { AssessmentViolation } from "../entities/AssessmentViolation.entity";
 import { AssessmentSubmission } from "../entities/AssessmentSubmission.entity";
 import { AssessmentAnswer } from "../entities/AssessmentAnswer.entity";
 import { AdminAssessmentAccess } from "../entities/AdminAssessmentAccess.entity";
+import { Company } from "../entities/Company.entity";
 import { SqlQuestion } from "../entities/SqlQuestion.entity";
+import { Notification } from "../entities/Notification.entity";
+import { CompanyRequestLog } from "../entities/CompanyRequestLog.entity";
 
 dotenv.config();
 
@@ -66,6 +69,9 @@ export const AppDataSource = new DataSource({
     AssessmentViolation,
     AssessmentSubmission,
     AssessmentAnswer,
-    AdminAssessmentAccess
+    AdminAssessmentAccess,
+    Company,
+    Notification,
+    CompanyRequestLog,
   ],
 });

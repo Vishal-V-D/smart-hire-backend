@@ -61,6 +61,12 @@ export const getProblem = async (id: string, userId?: string) => {
 
   // Check if user is registered in a contest containing this problem
   if (userId) {
+    // Check Company Admin Access to Organizer's Problem
+    const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
+    if (user?.role === "ADMIN" && user.company?.permissions?.createAssessment) {
+      if (problem.createdBy?.id === user.company.approvedById) return problem;
+    }
+
     const contestProblems = await cpRepo().find({
       where: { problem: { id } },
       relations: ["contest", "contest.contestant"],
@@ -78,13 +84,24 @@ export const getProblem = async (id: string, userId?: string) => {
   throw { status: 403, message: "Access denied" };
 };
 
-// ✅ List problems — PUBLIC + user's PRIVATE ones
+// ✅ List problems — PUBLIC + user's PRIVATE ones + Organizer's ones (if Company Admin)
 export const listProblems = async (userId?: string, skip = 0, take = 20) => {
+  const whereConditions: any[] = [
+    { accessType: ProblemAccess.PUBLIC }
+  ];
+
+  if (userId) {
+    whereConditions.push({ createdBy: { id: userId } });
+
+    const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
+    // If Company Admin with permission, show Organizer's private problems too
+    if (user?.role === "ADMIN" && user.company?.permissions?.createAssessment && user.company.approvedById) {
+      whereConditions.push({ createdBy: { id: user.company.approvedById } });
+    }
+  }
+
   return await repo().find({
-    where: [
-      { accessType: ProblemAccess.PUBLIC },
-      { createdBy: { id: userId } },
-    ],
+    where: whereConditions,
     skip,
     take,
     relations: ["createdBy", "testcases"],

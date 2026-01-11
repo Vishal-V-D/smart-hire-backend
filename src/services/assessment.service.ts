@@ -1,9 +1,11 @@
 import { AppDataSource } from "../config/db";
+import { Brackets } from "typeorm";
 import { Assessment, AssessmentStatus, TimeMode } from "../entities/Assessment.entity";
 import { AssessmentSection } from "../entities/AssessmentSection.entity";
 import { Question } from "../entities/Question.entity";
-import { User } from "../entities/user.entity";
+import { User, UserRole } from "../entities/user.entity";
 import { Problem } from "../entities/problem.entity";
+import { Company, CompanyStatus } from "../entities/Company.entity";
 import { SectionProblem } from "../entities/SectionProblem.entity";
 
 const repo = () => AppDataSource.getRepository(Assessment);
@@ -38,10 +40,37 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
     await queryRunner.startTransaction();
 
     try {
-        // Validate organizer exists
-        const organizer = await queryRunner.manager.findOneBy(User, { id: organizerId });
-        if (!organizer) {
-            throw { status: 404, message: "Organizer not found" };
+        // Validate organizer/creator exists
+        const user = await queryRunner.manager.findOne(User, {
+            where: { id: organizerId },
+            relations: ["company"] // Fetch company if they are an admin
+        });
+
+        if (!user) {
+            throw { status: 404, message: "User not found" };
+        }
+
+        let company: Company | undefined;
+
+        // 🛡️ PERMISSION CHECK FOR COMPANY ADMINS
+        if (user.role === UserRole.ADMIN) {
+            if (!user.company) {
+                throw { status: 403, message: "User not associated with a company" };
+            }
+            if (user.company.status !== CompanyStatus.APPROVED) {
+                throw { status: 403, message: "Company not approved" };
+            }
+
+            // Check specific permission
+            if (!user.company.permissions?.createAssessment) {
+                throw { status: 403, message: "Your company does not have permission to create assessments. Please contact the organizer." };
+            }
+
+            company = user.company; // Link assessment to this company
+            console.log(`[CREATE_ASSESSMENT] Authorized Company Admin: ${user.email} (${company.name})`);
+        } else if (user.role !== UserRole.ORGANIZER) {
+            // Only Organizers and authorized Admins can create
+            throw { status: 403, message: "Unauthorized role" };
         }
 
         // Validate title
@@ -87,7 +116,9 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
             timeMode: data.timeMode || TimeMode.GLOBAL,
             globalTime: data.globalTime,
             proctoring: data.proctoringSettings || { enabled: false },
-            organizer: organizer,
+
+            organizer: user, // The user who created (User entity)
+            company: company || undefined, // The company (if applicable)
             status: AssessmentStatus.DRAFT,
             totalMarks: 0,
             totalQuestions: 0,
@@ -357,11 +388,12 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
 };
 
 // ✅ Get single assessment by ID with sections and questions
-export const getAssessmentById = async (id: string, organizerId: string): Promise<Assessment> => {
+export const getAssessmentById = async (id: string, organizerId: string, skipOwnershipCheck = false): Promise<Assessment> => {
     let assessment = await repo().findOne({
         where: { id },
         relations: [
             "organizer",
+            "company",
             "sections",
             "sections.questions",
             "sections.problems",
@@ -371,9 +403,20 @@ export const getAssessmentById = async (id: string, organizerId: string): Promis
 
     if (!assessment) throw { status: 404, message: "Assessment not found" };
 
-    // Only owner can view
-    if (assessment.organizer?.id !== organizerId) {
-        throw { status: 403, message: "Access denied" };
+    if (!skipOwnershipCheck) {
+        // Only owner can view OR the company approver (Organizer)
+        let hasAccess = false;
+
+        // 1. Direct Owner
+        if (assessment.organizer?.id === organizerId) hasAccess = true;
+
+        // 2. Company Approver (Organizer)
+        // We need to check if this assessment belongs to a company approved by this organizer
+        if (!hasAccess && assessment.company?.approvedById === organizerId) hasAccess = true;
+
+        if (!hasAccess) {
+            throw { status: 403, message: "Access denied" };
+        }
     }
 
     // Auto-update status if assessment has ended
@@ -480,18 +523,27 @@ export const listAssessments = async (
     const sortBy = filters.sortBy || "createdAt";
     const order = filters.order?.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
-    const whereClause: any = { organizer: { id: organizerId } };
+    const orderBy = `assessment.${sortBy}`;
+
+    const query = repo().createQueryBuilder("assessment")
+        .leftJoinAndSelect("assessment.organizer", "organizer")
+        .leftJoinAndSelect("assessment.sections", "sections")
+        .leftJoinAndSelect("assessment.company", "company")
+        .where(new Brackets(qb => {
+            qb.where("organizer.id = :organizerId", { organizerId })
+                .orWhere("company.approvedById = :organizerId", { organizerId });
+        }));
+
     if (filters.status) {
-        whereClause.status = filters.status;
+        query.andWhere("assessment.status = :status", { status: filters.status });
     }
 
-    const [data, total] = await repo().findAndCount({
-        where: whereClause,
-        relations: ["organizer", "sections"],
-        skip,
-        take: limit,
-        order: { [sortBy]: order },
-    });
+    query
+        .orderBy(orderBy, order)
+        .skip(skip)
+        .take(limit);
+
+    const [data, total] = await query.getManyAndCount();
 
     // Auto-update status for assessments that have ended
     for (let i = 0; i < data.length; i++) {
@@ -518,7 +570,19 @@ export const updateAssessment = async (id: string, organizerId: string, data: an
 
     if (!assessment) throw { status: 404, message: "Assessment not found" };
 
-    if (assessment.organizer?.id !== organizerId) {
+    // Only owner can update OR the company approver (Organizer)
+    let hasAccess = false;
+    if (assessment.organizer?.id === organizerId) hasAccess = true;
+    // We need to fetch company relation if not fetched, but findOne above only gets organizer.
+    // Let's refetch with company for check if first check fails
+    if (!hasAccess) {
+        const fullErrAssessment = await repo().findOne({ where: { id }, relations: ["company"] });
+        if (fullErrAssessment?.company?.approvedById === organizerId) {
+            hasAccess = true;
+        }
+    }
+
+    if (!hasAccess) {
         throw { status: 403, message: "Access denied" };
     }
 
@@ -555,17 +619,41 @@ export const updateAssessment = async (id: string, organizerId: string, data: an
     return await repo().save(assessment) as unknown as Assessment;
 };
 
-// ✅ Delete assessment (only if draft)
-export const deleteAssessment = async (id: string, organizerId: string): Promise<{ message: string }> => {
+export const deleteAssessment = async (id: string, userId: string): Promise<{ message: string }> => {
     const assessment = await repo().findOne({
         where: { id },
-        relations: ["organizer"],
+        relations: ["organizer", "company"], // Need company to check perms
     });
 
     if (!assessment) throw { status: 404, message: "Assessment not found" };
 
-    if (assessment.organizer?.id !== organizerId) {
-        throw { status: 403, message: "Access denied" };
+    const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
+    if (!user) throw { status: 404, message: "User not found" };
+
+    // 🛡️ ACCESS CONTROL
+    if (user.role === UserRole.ORGANIZER) {
+        // 1. Direct Owner
+        let hasAccess = false;
+        if (assessment.organizer?.id === userId) hasAccess = true;
+
+        // 2. Company Approver
+        if (!hasAccess && assessment.company?.approvedById === userId) hasAccess = true;
+
+        if (!hasAccess) {
+            throw { status: 403, message: "Access denied" };
+        }
+    } else if (user.role === UserRole.ADMIN) {
+        // Company Admin Logic
+        // 1. Must belong to same company
+        if (assessment.company?.id !== user.company?.id) {
+            throw { status: 403, message: "Access denied. Not your company's assessment." };
+        }
+        // 2. Must have DELETE permission
+        if (!user.company.permissions?.deleteAssessment) {
+            throw { status: 403, message: "Your company does not have permission to delete assessments." };
+        }
+    } else {
+        throw { status: 403, message: "Unauthorized action" };
     }
 
     if (assessment.status !== AssessmentStatus.DRAFT) {
@@ -590,7 +678,19 @@ export const publishAssessment = async (id: string, organizerId: string): Promis
 
     if (!assessment) throw { status: 404, message: "Assessment not found" };
 
-    if (assessment.organizer?.id !== organizerId) {
+    // Ownership check (Direct or Company Approver)
+    let hasAccess = false;
+    if (assessment.organizer?.id === organizerId) hasAccess = true;
+    if (!hasAccess) {
+        // Refetch with company relation if needed? 
+        // relations already includes `sections...` but maybe not `company`.
+        // Let's rely on finding one with company or assume relations update.
+        // Wait, publishAssessment relations list does NOT have company.
+        const fullAss = await repo().findOne({ where: { id }, relations: ["company"] });
+        if (fullAss?.company?.approvedById === organizerId) hasAccess = true;
+    }
+
+    if (!hasAccess) {
         throw { status: 403, message: "Access denied" };
     }
 

@@ -1,12 +1,14 @@
 import { AppDataSource } from "../config/db";
 import { AdminAssessmentAccess, AccessType } from "../entities/AdminAssessmentAccess.entity";
 import { Assessment } from "../entities/Assessment.entity";
+import { User } from "../entities/user.entity";
 import { In } from "typeorm";
 
 export class AdminAccessService {
   private adminAccessRepo =
     AppDataSource.getRepository(AdminAssessmentAccess);
   private assessmentRepo = AppDataSource.getRepository(Assessment);
+  private userRepo = AppDataSource.getRepository(User);
 
   /**
    * Grant access to admin (WHOLE or PARTIAL)
@@ -253,7 +255,42 @@ export class AdminAccessService {
       ],
     });
 
-    return !!access;
+    if (access) return true;
+
+    // Check Company Permission fallback
+    const { hasCompanyAccess, companyId, permissions } = await this.checkCompanyAccess(adminId);
+    if (hasCompanyAccess) {
+      const assessment = await this.assessmentRepo.findOne({ where: { id: assessmentId }, relations: ["company", "organizer"] });
+      if (!assessment) return false;
+
+      // 1. Is it a company assessment?
+      if (assessment.companyId === companyId) {
+        // 2. Do they have view all permission?
+        if (permissions?.viewAllAssessments) return true;
+        // 3. Did they create it?
+        if (assessment.organizer?.id === adminId) return true;
+        // 4. Was it assigned by the Platform Organizer?
+        // (If companyId matches, and organizer is ORGANIZER role, it means it was assigned)
+        if (assessment.organizer?.role === 'ORGANIZER') return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Internal helper to check company permissions
+   */
+  private async checkCompanyAccess(adminId: string): Promise<{ hasCompanyAccess: boolean; companyId?: string; permissions?: any }> {
+    const user = await this.userRepo.findOne({ where: { id: adminId }, relations: ["company"] } as any);
+    if (!user || user.role !== 'ADMIN' || !user.company) {
+      return { hasCompanyAccess: false };
+    }
+    return {
+      hasCompanyAccess: true,
+      companyId: user.company.id,
+      permissions: user.company.permissions
+    };
   }
 
   /**
@@ -263,6 +300,7 @@ export class AdminAccessService {
     adminId: string,
     organizerId: string
   ): Promise<Assessment[]> {
+    // 1. Get manually granted access records
     const accessRecords = await this.adminAccessRepo.find({
       where: {
         adminUserId: adminId,
@@ -270,33 +308,53 @@ export class AdminAccessService {
       },
     });
 
-    if (accessRecords.length === 0) {
-      return [];
-    }
+    // 2. Check Company Permissions (View All or Self-Created)
+    const { hasCompanyAccess, companyId, permissions } = await this.checkCompanyAccess(adminId);
+    console.log(`[ACCESS_SERVICE] Admin ${adminId} Company Access: ${hasCompanyAccess}, ID: ${companyId}`);
 
-    // Check if admin has WHOLE access
-    const wholeAccess = accessRecords.find(
-      (r) => r.accessType === AccessType.WHOLE
-    );
+    let accessibleAssessments: Assessment[] = [];
 
+    // Strategy: Fetch Manual + Company assessments and Combine
+
+    // A. Add assessments from Manual WHOLE Access
+    const wholeAccess = accessRecords.find((r) => r.accessType === AccessType.WHOLE);
     if (wholeAccess) {
-      return this.assessmentRepo.find({
+      const manualAssessments = await this.assessmentRepo.find({
         where: { organizer: { id: organizerId } } as any,
       });
+      return manualAssessments; // WHOLE access overrides everything (usually)
     }
 
-    // Get specific assessments
-    const assessmentIds = accessRecords
+    // B. Add assessments from Manual PARTIAL Access
+    const manualIds = accessRecords
       .filter((r) => r.assessmentId)
       .map((r) => r.assessmentId);
 
-    if (assessmentIds.length === 0) {
-      return [];
+    // Construct Final Query
+    const query = this.assessmentRepo.createQueryBuilder("assessment")
+      .leftJoinAndSelect("assessment.organizer", "organizer")
+      .leftJoinAndSelect("assessment.company", "company")
+      .where("assessment.id IN (:...manualIds)", { manualIds: manualIds.length > 0 ? manualIds : ['00000000-0000-0000-0000-000000000000'] }); // Default invalid ID if empty
+
+    if (hasCompanyAccess) {
+      if (permissions?.viewAllAssessments) {
+        // Can see EVERYTHING related to their company
+        query.orWhere("assessment.companyId = :companyId", { companyId });
+      } else {
+        // Can see:
+        // 1. Their own created assessments
+        query.orWhere("assessment.organizerId = :adminId", { adminId });
+
+        // 2. Assessments ASSIGNED to their company by the Organizer (Role = ORGANIZER)
+        query.orWhere("(assessment.companyId = :companyId AND organizer.role = :orgRole)", {
+          companyId,
+          orgRole: 'ORGANIZER'
+        });
+      }
     }
 
-    return this.assessmentRepo.find({
-      where: { id: In(assessmentIds) },
-    });
+    accessibleAssessments = await query.getMany();
+    return accessibleAssessments;
   }
 
   /**

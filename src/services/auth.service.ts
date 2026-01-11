@@ -59,6 +59,7 @@ export const loginUser = async (emailOrUsername: string, password: string) => {
   const user = await repo()
     .createQueryBuilder("user")
     .addSelect("user.verificationToken") // Select hidden column if needed for debugging, but mainly we need isVerified
+    .leftJoinAndSelect("user.company", "company") // Join company to get permissions
     .where("user.email = :q OR user.username = :q", { q: emailOrUsername })
     .getOne();
 
@@ -91,6 +92,8 @@ export const loginUser = async (emailOrUsername: string, password: string) => {
     role: user.role,
     // Include assignedOrganizerId for ADMIN/COMPANY users
     ...(user.assignedOrganizerId && { assignedOrganizerId: user.assignedOrganizerId }),
+    // Include companyId for COMPANY users
+    ...(user.companyId && { companyId: user.companyId }),
   };
 
   const accessToken = signAccessToken(payload);
@@ -118,7 +121,7 @@ export const verifyEmail = async (token: string) => {
 };
 
 export const getUserById = async (userId: string) => {
-  const user = await repo().findOne({ where: { id: userId } });
+  const user = await repo().findOne({ where: { id: userId }, relations: ["company"] });
   if (!user) throw { status: 404, message: "User not found" };
   return {
     id: user.id,
@@ -127,6 +130,14 @@ export const getUserById = async (userId: string) => {
     organizationName: user.organizationName,
     role: user.role,
     avatarUrl: user.avatarUrl,
+    // Include extra fields for Company/Admin users
+    assignedOrganizerId: user.assignedOrganizerId,
+    companyId: user.companyId,
+    company: user.company ? {
+      id: user.company.id,
+      name: user.company.name,
+      permissions: user.company.permissions
+    } : null
   };
 };
 
