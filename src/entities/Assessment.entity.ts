@@ -150,6 +150,9 @@ export class Assessment {
     @Column({ type: "int", default: 0 })
     totalTime: number;
 
+    @Column({ type: "int", default: 40 })
+    passPercentage: number;
+
     // Navigation settings
     @Column({ default: true })
     allowPreviousNavigation: boolean;

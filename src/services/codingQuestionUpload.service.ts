@@ -252,13 +252,29 @@ export const listCodingQuestions = async (options: {
     const query = problemRepo().createQueryBuilder("problem")
         .leftJoinAndSelect("problem.createdBy", "creator");
 
-    // Filter by access (public or owned)
+    // Filter by access (public or owned OR admin override)
+    let hasFullAccess = false;
+
     if (userId) {
-        query.where(
-            "(problem.accessType = :public OR problem.createdBy.id = :userId)",
-            { public: ProblemAccess.PUBLIC, userId }
-        );
+        // Check for admin permission
+        const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
+
+        if (user?.role === "ORGANIZER" || (user?.role === "ADMIN" && user.company?.permissions?.createAssessment)) {
+            hasFullAccess = true;
+        }
+
+        if (hasFullAccess) {
+            // Admin/Organizer can see ALL problems (no restriction on createdBy)
+            // We still might want to filter by public/private if needed, but usually they want to seclect from ALL
+        } else {
+            // Regular user: Public OR Owned
+            query.where(
+                "(problem.accessType = :public OR problem.createdBy.id = :userId)",
+                { public: ProblemAccess.PUBLIC, userId }
+            );
+        }
     } else {
+        // Guest: Public only
         query.where("problem.accessType = :public", { public: ProblemAccess.PUBLIC });
     }
 

@@ -15,7 +15,7 @@ const config = {
 export const transporter = nodemailer.createTransport(config);
 
 // Default sender
-export const EMAIL_FROM = process.env.EMAIL_FROM || "SecureHire <noreply@securehire.com>";
+export const EMAIL_FROM = process.env.EMAIL_FROM || "SmartHire <noreply@smarthire.com>";
 
 // Frontend URL for invitation links
 export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -99,7 +99,7 @@ export const generateInvitationEmail = (params: {
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 Assessment Invitation</h1>
+            <h1>Assessment Invitation</h1>
         </div>
         <div class="content">
             <p>${greeting}</p>
@@ -110,13 +110,13 @@ export const generateInvitationEmail = (params: {
                 <a href="${params.inviteLink}" class="btn">Accept Invitation</a>
             </p>
             <div class="expiry">
-                ⏳ <strong>Expires:</strong> ${expiryDate}
+                <strong>Expires:</strong> ${expiryDate}
             </div>
             <p>If the button doesn't work, copy and paste this link into your browser:</p>
             <p style="word-break: break-all; color: #667eea;">${params.inviteLink}</p>
         </div>
         <div class="footer">
-            <p>This is an automated message from SecureHire Assessment Platform.</p>
+            <p>This is an automated message from SmartHire Assessment Platform.</p>
             <p>If you didn't expect this invitation, please ignore this email.</p>
         </div>
     </div>
@@ -135,7 +135,7 @@ Accept your invitation: ${params.inviteLink}
 This invitation expires on: ${expiryDate}
 
 ---
-SecureHire Assessment Platform
+SmartHire Assessment Platform
 `;
 
     return { html, text };

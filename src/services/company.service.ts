@@ -131,7 +131,7 @@ const sendCompanyApprovalEmail = async (
 
   await sendEmail({
     to: email,
-    subject: `${companyName} - Account Approved! Set Your Password`,
+    subject: `Account Approval and Password Setup - ${companyName}`,
     html: html_body,
     text: `Your company ${companyName} has been approved! Set your password here: ${setupLink} (Expires in 24 hours)`,
   });
@@ -179,7 +179,7 @@ export const registerCompany = async (
   const newAdmin = userRepo().create({
     email: adminEmail,
     fullName: adminName,
-    username: adminEmail.split("@")[0] + crypto.randomBytes(4).toString("hex"),
+    username: adminName.replace(/\s+/g, "").toLowerCase() + crypto.randomBytes(3).toString("hex"),
     // password will be set later via setupPassword
     role: UserRole.ADMIN,
     company: savedCompany,
@@ -252,7 +252,7 @@ export const requestNewAdmin = async (
   const newAdmin = userRepo().create({
     email: newAdminEmail,
     fullName: newAdminName,
-    username: newAdminEmail.split("@")[0] + crypto.randomBytes(4).toString("hex"),
+    username: newAdminName.replace(/\s+/g, "").toLowerCase() + crypto.randomBytes(3).toString("hex"),
     password: hashedPassword,
     role: UserRole.ADMIN,
     company: requester.company,
@@ -502,6 +502,18 @@ export const assignAssessmentToCompany = async (
 };
 
 /**
+ * Get Company By ID
+ */
+export const getCompanyById = async (companyId: string) => {
+  const company = await companyRepo().findOne({
+    where: { id: companyId },
+    relations: ["users"]
+  });
+  if (!company) throw { status: 404, message: "Company not found" };
+  return company;
+};
+
+/**
  * Setup password for approved company admin using magic token
  */
 export const setupPassword = async (token: string, password: string) => {
@@ -616,6 +628,28 @@ export const updateCompanyPermissions = async (
     ...company.permissions,
     ...permissions
   };
+
+  // 4. PERSIST TO DB (CRITICAL FIX)
+  await companyRepo().save(company);
+
+  // 🔔 Notify Company Admins
+  try {
+    const { createNotification } = require("./notification.service");
+    const { NotificationType } = require("../entities/Notification.entity");
+
+    await createNotification({
+      type: NotificationType.INFO,
+      title: "Permissions Updated",
+      message: `Your company permissions have been updated by the system organizer.`,
+      data: {
+        permissions: company.permissions,
+        updatedBy: organizer.fullName || organizer.email
+      },
+      companyId: companyId
+    });
+  } catch (error) {
+    console.error("Failed to send permission update notification:", error);
+  }
 
   // 📜 Log History
   await logRequest(RequestAction.UPDATE_PERMISSIONS, organizerId, companyId, undefined, { permissions, updatedBy: organizer.email });

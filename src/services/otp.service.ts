@@ -12,77 +12,77 @@ const invitationRepo = () => AppDataSource.getRepository(AssessmentInvitation);
  * Generate 6-digit OTP
  */
 const generateOTP = (): string => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 /**
  * Send OTP to email
  */
 export const sendOTP = async (email: string, assessmentId: string): Promise<{ success: boolean }> => {
-    console.log(`\n📧 [OTP] Sending OTP to ${email}...`);
+  console.log(`\n📧 [OTP] Sending OTP to ${email}...`);
 
-    // Check if assessment exists
-    const assessment = await assessmentRepo().findOne({ where: { id: assessmentId } });
-    if (!assessment) {
-        throw { status: 404, message: "Assessment not found" };
-    }
+  // Check if assessment exists
+  const assessment = await assessmentRepo().findOne({ where: { id: assessmentId } });
+  if (!assessment) {
+    throw { status: 404, message: "Assessment not found" };
+  }
 
-    // SECURITY CHECK: Verify email has a valid invitation for this assessment
-    // Check for PENDING, SENT, or ACCEPTED status
-    const invitation = await invitationRepo().findOne({
-        where: [
-            {
-                assessment: { id: assessmentId },
-                email: email.toLowerCase(),
-                status: InvitationStatus.PENDING
-            },
-            {
-                assessment: { id: assessmentId },
-                email: email.toLowerCase(),
-                status: InvitationStatus.SENT
-            },
-            {
-                assessment: { id: assessmentId },
-                email: email.toLowerCase(),
-                status: InvitationStatus.ACCEPTED
-            }
-        ]
-    });
-
-    if (!invitation) {
-        console.log(`   ❌ Security Check Failed: No invitation found for ${email}`);
-        throw { status: 403, message: "This email is not invited to this assessment." };
-    }
-
-    // Generate OTP
-    const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    console.log(`   Generated OTP: ${otp}`);
-    console.log(`   Expires at: ${expiresAt.toISOString()}`);
-
-    // Delete any existing unverified OTPs for this email + assessment
-    await otpRepo().delete({
-        email: email.toLowerCase(),
+  // SECURITY CHECK: Verify email has a valid invitation for this assessment
+  // Check for PENDING, SENT, or ACCEPTED status
+  const invitation = await invitationRepo().findOne({
+    where: [
+      {
         assessment: { id: assessmentId },
-        verified: false,
-    });
-
-    // Save new OTP
-    const otpRecord = otpRepo().create({
         email: email.toLowerCase(),
-        otp,
-        assessment,
-        expiresAt,
-        verified: false,
-    });
+        status: InvitationStatus.PENDING
+      },
+      {
+        assessment: { id: assessmentId },
+        email: email.toLowerCase(),
+        status: InvitationStatus.SENT
+      },
+      {
+        assessment: { id: assessmentId },
+        email: email.toLowerCase(),
+        status: InvitationStatus.ACCEPTED
+      }
+    ]
+  });
 
-    await otpRepo().save(otpRecord);
+  if (!invitation) {
+    console.log(`   ❌ Security Check Failed: No invitation found for ${email}`);
+    throw { status: 403, message: "This email is not invited to this assessment." };
+  }
 
-    const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
+  // Generate OTP
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Send email via Brevo
-    const emailHtml = `
+  console.log(`   Generated OTP: ${otp}`);
+  console.log(`   Expires at: ${expiresAt.toISOString()}`);
+
+  // Delete any existing unverified OTPs for this email + assessment
+  await otpRepo().delete({
+    email: email.toLowerCase(),
+    assessment: { id: assessmentId },
+    verified: false,
+  });
+
+  // Save new OTP
+  const otpRecord = otpRepo().create({
+    email: email.toLowerCase(),
+    otp,
+    assessment,
+    expiresAt,
+    verified: false,
+  });
+
+  await otpRepo().save(otpRecord);
+
+  const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
+
+  // Send email via Brevo
+  const emailHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,62 +169,62 @@ export const sendOTP = async (email: string, assessmentId: string): Promise<{ su
 </body>
 </html>`;
 
-    const success = await sendEmail({
-        to: email,
-        toName: email,
-        subject: `Your SmartHire Verification Code: ${otp}`,
-        html: emailHtml,
-        text: `Your OTP is: ${otp}. Valid for 10 minutes for ${assessment.title}.`,
-    });
+  const success = await sendEmail({
+    to: email,
+    toName: email,
+    subject: `Verification Code for ${assessment.title}`,
+    html: emailHtml,
+    text: `Your OTP is: ${otp}. Valid for 10 minutes for ${assessment.title}.`,
+  });
 
-    if (success) {
-        console.log(`   ✅ OTP sent successfully`);
-    } else {
-        console.log(`   ❌ Failed to send OTP email`);
-    }
+  if (success) {
+    console.log(`   ✅ OTP sent successfully`);
+  } else {
+    console.log(`   ❌ Failed to send OTP email`);
+  }
 
-    return { success };
+  return { success };
 };
 
 /**
  * Verify OTP
  */
 export const verifyOTP = async (
-    email: string,
-    otp: string,
-    assessmentId: string
+  email: string,
+  otp: string,
+  assessmentId: string
 ): Promise<{ success: boolean; message: string }> => {
-    console.log(`\n🔍 [OTP] Verifying OTP for ${email}...`);
+  console.log(`\n🔍 [OTP] Verifying OTP for ${email}...`);
 
-    const otpRecord = await otpRepo().findOne({
-        where: {
-            email: email.toLowerCase(),
-            otp,
-            assessment: { id: assessmentId },
-            verified: false,
-        },
-        relations: ["assessment"],
-    });
+  const otpRecord = await otpRepo().findOne({
+    where: {
+      email: email.toLowerCase(),
+      otp,
+      assessment: { id: assessmentId },
+      verified: false,
+    },
+    relations: ["assessment"],
+  });
 
-    if (!otpRecord) {
-        console.log(`   ❌ Invalid OTP`);
-        throw { status: 400, message: "Invalid OTP" };
-    }
+  if (!otpRecord) {
+    console.log(`   ❌ Invalid OTP`);
+    throw { status: 400, message: "Invalid OTP" };
+  }
 
-    // Check expiry
-    if (new Date() > otpRecord.expiresAt) {
-        console.log(`   ❌ OTP expired`);
-        throw { status: 400, message: "OTP has expired. Please request a new one." };
-    }
+  // Check expiry
+  if (new Date() > otpRecord.expiresAt) {
+    console.log(`   ❌ OTP expired`);
+    throw { status: 400, message: "OTP has expired. Please request a new one." };
+  }
 
-    // Mark as verified
-    otpRecord.verified = true;
-    await otpRepo().save(otpRecord);
+  // Mark as verified
+  otpRecord.verified = true;
+  await otpRepo().save(otpRecord);
 
-    console.log(`   ✅ OTP verified successfully`);
+  console.log(`   ✅ OTP verified successfully`);
 
-    return {
-        success: true,
-        message: "OTP verified successfully",
-    };
+  return {
+    success: true,
+    message: "OTP verified successfully",
+  };
 };

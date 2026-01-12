@@ -136,6 +136,12 @@ export const getUserById = async (userId: string) => {
     company: user.company ? {
       id: user.company.id,
       name: user.company.name,
+      description: user.company.description,
+      website: user.company.website,
+      industry: user.company.industry,
+      contactEmail: user.company.contactEmail,
+      contactPhone: user.company.contactPhone,
+      status: user.company.status,
       permissions: user.company.permissions
     } : null
   };

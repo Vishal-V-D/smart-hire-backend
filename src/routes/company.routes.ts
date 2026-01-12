@@ -140,6 +140,28 @@ router.get(
     }
 );
 
+// COMPANY ADMIN: Get My Company Details
+router.get(
+    "/details",
+    checkAuth,
+    checkRole([UserRole.ADMIN]),
+    (req, res) => {
+        console.log(`[DEBUG] Fetch Company Details Request by ${(req as any).user?.email}`);
+        companyController.getCompanyDetails(req, res);
+    }
+);
+
+// ORGANIZER/ADMIN: Get Specific Company by ID
+router.get(
+    "/:companyId",
+    checkAuth,
+    checkRole([UserRole.ORGANIZER, UserRole.ADMIN]),
+    (req, res) => {
+        console.log(`[DEBUG] Fetch Company Request: ${req.params.companyId} by ${(req as any).user.role}`);
+        companyController.getCompanyById(req, res);
+    }
+);
+
 // COMPANY ADMIN: Get Team Members
 router.get(
     "/team",

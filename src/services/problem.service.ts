@@ -59,14 +59,28 @@ export const getProblem = async (id: string, userId?: string) => {
   // Creator can see
   if (problem.createdBy?.id === userId) return problem;
 
-  // Check if user is registered in a contest containing this problem
+  // Check if user has special access (Organizer or Authorized Admin)
+  // If userId is provided, fetch user details
+  let user: User | null = null;
   if (userId) {
-    // Check Company Admin Access to Organizer's Problem
-    const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
-    if (user?.role === "ADMIN" && user.company?.permissions?.createAssessment) {
-      if (problem.createdBy?.id === user.company.approvedById) return problem;
+    user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
+  }
+
+  if (user) {
+    console.log(`🔍 [GET_PROBLEM] Checking access for User: ${user.email} | Role: ${user.role}`);
+    if (user.role === 'ADMIN') {
+      console.log(`   🏢 Company: ${user.company?.name} | Permission (createAssessment): ${user.company?.permissions?.createAssessment}`);
     }
 
+    // 1. ORGANIZER: Full access to all problems
+    if (user.role === "ORGANIZER") return problem;
+
+    // 2. ADMIN: Access if they have 'createAssessment' permission (Can view ALL problems to select from bank)
+    if (user.role === "ADMIN" && user.company?.permissions?.createAssessment) {
+      return problem;
+    }
+
+    // 3. CONTESTANT/GENERAL: Check contest registration
     const contestProblems = await cpRepo().find({
       where: { problem: { id } },
       relations: ["contest", "contest.contestant"],
@@ -91,12 +105,35 @@ export const listProblems = async (userId?: string, skip = 0, take = 20) => {
   ];
 
   if (userId) {
+    const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
+
+    if (user) {
+      console.log(`🔍 [LIST_PROBLEMS] Checking access for User: ${user.email} | Role: ${user.role}`);
+      if (user.role === 'ADMIN') {
+        console.log(`   🏢 Company: ${user.company?.name} | Permission (createAssessment): ${user.company?.permissions?.createAssessment}`);
+      }
+    }
+
+    // 1. ORGANIZER: See everything
+    if (user?.role === "ORGANIZER") {
+      return await repo().find({
+        skip,
+        take,
+        relations: ["createdBy", "testcases"],
+      });
+    }
+
+    // 2. Own Problems
     whereConditions.push({ createdBy: { id: userId } });
 
-    const user = await userRepo().findOne({ where: { id: userId }, relations: ["company"] });
-    // If Company Admin with permission, show Organizer's private problems too
-    if (user?.role === "ADMIN" && user.company?.permissions?.createAssessment && user.company.approvedById) {
-      whereConditions.push({ createdBy: { id: user.company.approvedById } });
+    // 3. ADMIN: Show ALL problems if they have permission (Global Question Bank Access)
+    if (user?.role === "ADMIN" && user.company?.permissions?.createAssessment) {
+      // Return everything (Public + Private + Others) just like Organizers
+      return await repo().find({
+        skip,
+        take,
+        relations: ["createdBy", "testcases"],
+      });
     }
   }
 

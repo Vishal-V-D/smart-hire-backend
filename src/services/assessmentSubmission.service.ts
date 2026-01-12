@@ -752,6 +752,21 @@ export const submitAssessment = async (
     // Generate analytics
     const analytics = generateAnalytics(submission, answers, sectionScores);
 
+    // Initial Verdict Calculation
+    const passThreshold = submission.assessment?.passPercentage || 40;
+    const finalScore = Math.max(0, totalScore);
+    const percentage = submission.maxScore > 0 ? (finalScore / submission.maxScore) * 100 : 0;
+
+    analytics.verdict = {
+        status: percentage >= passThreshold ? "passed" : "failed",
+        finalScore: finalScore,
+        adjustedScore: finalScore,
+        violationPenalty: 0,
+        notes: null,
+        evaluatedBy: "System",
+        evaluatedAt: new Date()
+    };
+
     // Update submission
     submission.status = SubmissionStatus.EVALUATED;
     submission.submittedAt = new Date();

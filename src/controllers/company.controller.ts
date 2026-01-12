@@ -142,6 +142,38 @@ export class CompanyController {
         }
     }
 
+    // Get Single Company Details (Current Admin's Company)
+    public async getCompanyDetails(req: Request, res: Response) {
+        try {
+            const companyId = (req as any).user.companyId;
+            if (!companyId) {
+                return res.status(403).json({ message: "Access denied. No company associated." });
+            }
+            const result = await CompanyService.getCompanyById(companyId);
+            res.json(result);
+        } catch (error: any) {
+            res.status(error.status || 500).json({ message: error.message || "Failed to fetch company details" });
+        }
+    }
+
+    // Get Company By ID (Organizer/Admin)
+    public async getCompanyById(req: Request, res: Response) {
+        try {
+            const { companyId } = req.params;
+            const user = (req as any).user;
+
+            // Security Check: If ADMIN, must be their own company
+            if (user.role === "ADMIN" && user.companyId !== companyId) {
+                return res.status(403).json({ message: "Access denied." });
+            }
+
+            const result = await CompanyService.getCompanyById(companyId);
+            res.json(result);
+        } catch (error: any) {
+            res.status(error.status || 500).json({ message: error.message || "Failed to fetch company" });
+        }
+    }
+
     // Delete Company (Organizer)
     public async deleteCompany(req: Request, res: Response) {
         try {

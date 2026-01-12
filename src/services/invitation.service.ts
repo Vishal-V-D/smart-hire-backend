@@ -58,7 +58,10 @@ export const createInvitation = async (
     console.log(`📧 [INVITATION] Creating invitation for ${input.email}...`);
 
     // Find assessment
-    const assessment = await assessmentRepo().findOne({ where: { id: input.assessmentId } });
+    const assessment = await assessmentRepo().findOne({
+        where: { id: input.assessmentId },
+        relations: ["company"]
+    });
     if (!assessment) {
         throw { status: 404, message: "Assessment not found" };
     }
@@ -119,15 +122,15 @@ export const sendInvitationEmail = async (invitation: AssessmentInvitation): Pro
     const { html, text } = generateInvitationEmail({
         name: invitation.name,
         assessmentTitle: invitation.assessment.title,
-        organizationName: invitation.invitedBy?.organizationName || "Organization",
-        organizerUsername: invitation.invitedBy?.username || "Organizer",
+        organizationName: invitation.assessment?.company?.name || invitation.invitedBy?.organizationName || "SmartHire",
+        organizerUsername: invitation.invitedBy?.fullName || invitation.invitedBy?.username || "Organizer",
         inviteLink,
         expiresAt: invitation.expiresAt,
     });
 
     const success = await sendEmail({
         to: invitation.email,
-        subject: `📋 Invitation: ${invitation.assessment.title}`,
+        subject: `Invitation: ${invitation.assessment.title}`,
         html,
         text,
     });
@@ -252,7 +255,7 @@ export const listInvitations = async (input: ListInvitationsInput = {}) => {
 export const getInvitationById = async (id: string): Promise<AssessmentInvitation> => {
     const invitation = await repo().findOne({
         where: { id },
-        relations: ["assessment", "user", "invitedBy"],
+        relations: ["assessment", "assessment.company", "user", "invitedBy"],
     });
 
     if (!invitation) {

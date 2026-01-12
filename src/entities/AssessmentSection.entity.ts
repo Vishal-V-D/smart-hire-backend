@@ -11,6 +11,7 @@ import { Assessment } from "./Assessment.entity";
 import { Question } from "./Question.entity";
 import { SectionProblem } from "./SectionProblem.entity";
 import { SqlQuestion } from "./SqlQuestion.entity";
+import { ColumnNumericTransformer } from "./AssessmentSubmission.entity";
 
 export enum SectionType {
     APTITUDE = "aptitude",
@@ -73,7 +74,7 @@ export class AssessmentSection {
     timeLimit: number;
 
     // Negative marking as decimal (0-1)
-    @Column({ type: "decimal", precision: 3, scale: 2, default: 0 })
+    @Column({ type: "decimal", precision: 3, scale: 2, default: 0, transformer: new ColumnNumericTransformer() })
     negativeMarking: number;
 
     // Calculated total marks for this section (sum of all question marks)

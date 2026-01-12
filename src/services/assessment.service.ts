@@ -104,6 +104,13 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
             }
         }
 
+        // Validate pass percentage
+        if (data.passPercentage !== undefined) {
+            if (typeof data.passPercentage !== 'number' || data.passPercentage < 0 || data.passPercentage > 100) {
+                throw { status: 400, message: "Pass percentage must be a number between 0 and 100" };
+            }
+        }
+
         console.log(`[CREATE_ASSESSMENT] Creating assessment: ${data.title}`);
 
         // Create assessment entity
@@ -115,6 +122,7 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
             duration: data.duration,
             timeMode: data.timeMode || TimeMode.GLOBAL,
             globalTime: data.globalTime,
+            passPercentage: data.passPercentage || 40,
             proctoring: data.proctoringSettings || { enabled: false },
 
             organizer: user, // The user who created (User entity)
@@ -601,6 +609,13 @@ export const updateAssessment = async (id: string, organizerId: string, data: an
     // Validate description if provided
     if (data.description !== undefined && data.description.length > 2000) {
         throw { status: 400, message: "Description must not exceed 2000 characters" };
+    }
+
+    // Validate pass percentage if provided
+    if (data.passPercentage !== undefined) {
+        if (typeof data.passPercentage !== 'number' || data.passPercentage < 0 || data.passPercentage > 100) {
+            throw { status: 400, message: "Pass percentage must be a number between 0 and 100" };
+        }
     }
 
     // Validate dates

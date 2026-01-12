@@ -12,6 +12,7 @@ import { AssessmentSubmission } from "./AssessmentSubmission.entity";
 import { AssessmentSection } from "./AssessmentSection.entity";
 import { Question } from "./Question.entity";
 import { Problem } from "./problem.entity";
+import { ColumnNumericTransformer } from "./AssessmentSubmission.entity";
 
 export enum AnswerStatus {
     UNATTEMPTED = "unattempted",
@@ -109,10 +110,10 @@ export class AssessmentAnswer {
     language: string;
 
     // Marks for this question
-    @Column({ type: "decimal", precision: 10, scale: 2, nullable: true, default: null })
+    @Column({ type: "decimal", precision: 10, scale: 2, nullable: true, default: null, transformer: new ColumnNumericTransformer() })
     marksObtained: number | null;
 
-    @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+    @Column({ type: "decimal", precision: 10, scale: 2, default: 0, transformer: new ColumnNumericTransformer() })
     maxMarks: number;
 
     // Was answer correct?

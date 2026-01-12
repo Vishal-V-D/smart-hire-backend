@@ -12,6 +12,15 @@ import { User } from "./user.entity";
 import { Assessment } from "./Assessment.entity";
 import { AssessmentSession } from "./AssessmentSession.entity";
 
+export class ColumnNumericTransformer {
+    to(data: number): number {
+        return data;
+    }
+    from(data: string): number {
+        return parseFloat(data);
+    }
+}
+
 export enum SubmissionStatus {
     IN_PROGRESS = "in_progress",
     SUBMITTED = "submitted",
@@ -61,6 +70,15 @@ export interface SubmissionAnalytics {
         totalScore: number;
         maxScore: number;
     };
+    verdict?: {
+        status: string; // "passed", "failed", "disqualified", "pending"
+        finalScore: number;
+        adjustedScore: number;
+        violationPenalty: number;
+        notes: string | null;
+        evaluatedBy: string | null;
+        evaluatedAt: Date | null;
+    };
 }
 
 @Entity("assessment_submissions")
@@ -107,13 +125,13 @@ export class AssessmentSubmission {
     submittedAt: Date;
 
     // Scores
-    @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+    @Column({ type: "decimal", precision: 10, scale: 2, default: 0, transformer: new ColumnNumericTransformer() })
     totalScore: number;
 
-    @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+    @Column({ type: "decimal", precision: 10, scale: 2, default: 0, transformer: new ColumnNumericTransformer() })
     maxScore: number;
 
-    @Column({ type: "decimal", precision: 5, scale: 2, default: 0 })
+    @Column({ type: "decimal", precision: 5, scale: 2, default: 0, transformer: new ColumnNumericTransformer() })
     percentage: number;
 
     // For Section-Timed Assessments

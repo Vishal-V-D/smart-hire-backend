@@ -39,7 +39,7 @@ export interface ParticipantReport {
         cgpa: number | null;
         resumeUrl: string | null;
         idCardUrl: string | null;
-        registeredAt: Date;
+        registeredAt: Date | string;
     };
 
     // Verification Images
@@ -53,8 +53,8 @@ export interface ParticipantReport {
     // Session Info
     session: {
         id: string;
-        startedAt: Date | null;
-        submittedAt: Date | null;
+        startedAt: Date | string | null;
+        submittedAt: Date | string | null;
         totalTimeTaken: number; // in seconds
         status: string;
         proctoringConsent: boolean;
@@ -124,7 +124,7 @@ export interface ParticipantReport {
         details: {
             id: string;
             type: string;
-            detectedAt: Date;
+            detectedAt: Date | string;
             metadata: any;
         }[];
         riskLevel: "low" | "medium" | "high";
@@ -147,16 +147,16 @@ export interface ParticipantReport {
         violationPenalty: number;
         notes: string | null;
         evaluatedBy: string | null;
-        evaluatedAt: Date | null;
+        evaluatedAt: Date | string | null;
     };
 
     // Timestamps
     timestamps: {
-        invitedAt: Date | null;
-        acceptedAt: Date | null;
-        startedAt: Date | null;
-        submittedAt: Date | null;
-        evaluatedAt: Date | null;
+        invitedAt: Date | string | null;
+        acceptedAt: Date | string | null;
+        startedAt: Date | string | null;
+        submittedAt: Date | string | null;
+        evaluatedAt: Date | string | null;
     };
 
     // Is auto-submitted?
@@ -178,6 +178,7 @@ export interface AssessmentReportSummary {
         lowestScore: number;
         averageTimeTaken: number;
         passRate: number; // % of participants who passed
+        passPercentage: number; // The score required to pass
     };
 
     // Violation Stats
@@ -273,7 +274,7 @@ export const getAssessmentReport = async (
     const participantReports: ParticipantReport[] = [];
 
     for (const submission of submissions) {
-        const report = await buildParticipantReport(assessmentId, submission);
+        const report = await buildParticipantReport(assessment, submission);
         participantReports.push(report);
     }
 
@@ -284,7 +285,7 @@ export const getAssessmentReport = async (
     });
 
     // Calculate summary stats
-    const stats = calculateAssessmentStats(participantReports);
+    const stats = calculateAssessmentStats(participantReports, assessment.passPercentage);
     const violationStats = calculateViolationStats(participantReports);
 
     // ============================================
@@ -425,7 +426,15 @@ export const getParticipantReport = async (
         throw { status: 404, message: "Submission not found for this participant" };
     }
 
-    return await buildParticipantReport(assessmentId, submission);
+    const assessment = await assessmentRepo().findOne({
+        where: { id: assessmentId }
+    });
+
+    if (!assessment) {
+        throw { status: 404, message: "Assessment not found" };
+    }
+
+    return await buildParticipantReport(assessment, submission);
 };
 
 // ============================================
@@ -478,9 +487,10 @@ export const updateParticipantVerdict = async (
 // ============================================
 
 const buildParticipantReport = async (
-    assessmentId: string,
+    assessment: Assessment,
     submission: AssessmentSubmission
 ): Promise<ParticipantReport> => {
+    const assessmentId = assessment.id;
     const userId = submission.userId;
 
     // Fetch contestant profile
@@ -659,7 +669,7 @@ const buildParticipantReport = async (
             cgpa: profile?.cgpa || null,
             resumeUrl: profile?.resumeUrl || null,
             idCardUrl: profile?.idCardUrl || null,
-            registeredAt: profile?.createdAt || submission.createdAt
+            registeredAt: formatDate(profile?.createdAt || submission.createdAt) || submission.createdAt
         },
 
         verification: {
@@ -673,8 +683,8 @@ const buildParticipantReport = async (
 
         session: {
             id: session?.id || "",
-            startedAt: session?.startedAt || submission.startedAt,
-            submittedAt: session?.submittedAt || submission.submittedAt,
+            startedAt: formatDate(session?.startedAt || submission.startedAt),
+            submittedAt: formatDate(session?.submittedAt || submission.submittedAt),
             totalTimeTaken: timeTaken,
             status: session?.status || (submission.status === SubmissionStatus.EVALUATED ? "completed" : "unknown"),
             proctoringConsent: session?.proctoringConsent || false,
@@ -704,7 +714,7 @@ const buildParticipantReport = async (
             details: violations.map(v => ({
                 id: v.id,
                 type: v.type,
-                detectedAt: v.detectedAt,
+                detectedAt: formatDate(v.detectedAt) || v.detectedAt,
                 metadata: v.metadata
             })),
             riskLevel: violationRiskLevel
@@ -720,21 +730,23 @@ const buildParticipantReport = async (
         } : null,
 
         verdict: {
-            status: verdictData.status || (submission.status === SubmissionStatus.EVALUATED ? "passed" : "pending"),
+            status: verdictData.status || (submission.status === SubmissionStatus.EVALUATED
+                ? (submission.percentage >= (assessment.passPercentage || 40) ? "passed" : "failed")
+                : "pending"),
             finalScore: submission.totalScore || 0,
             adjustedScore: verdictData.adjustedScore ?? submission.totalScore ?? 0,
             violationPenalty: verdictData.violationPenalty ?? 0,
             notes: verdictData.notes || null,
             evaluatedBy: verdictData.evaluatedBy || null,
-            evaluatedAt: verdictData.evaluatedAt || submission.submittedAt
+            evaluatedAt: formatDate(verdictData.evaluatedAt || submission.submittedAt)
         },
 
         timestamps: {
-            invitedAt: invitation?.createdAt || null,
-            acceptedAt: invitation?.acceptedAt || null,
-            startedAt: session?.startedAt || submission.startedAt,
-            submittedAt: session?.submittedAt || submission.submittedAt,
-            evaluatedAt: submission.updatedAt
+            invitedAt: formatDate(invitation?.createdAt),
+            acceptedAt: formatDate(invitation?.acceptedAt),
+            startedAt: formatDate(session?.startedAt || submission.startedAt),
+            submittedAt: formatDate(session?.submittedAt || submission.submittedAt),
+            evaluatedAt: formatDate(submission.updatedAt)
         },
 
         isAutoSubmitted: submission.isAutoSubmitted || false
@@ -745,7 +757,7 @@ const buildParticipantReport = async (
 // HELPER: CALCULATE ASSESSMENT STATS
 // ============================================
 
-const calculateAssessmentStats = (reports: ParticipantReport[]) => {
+const calculateAssessmentStats = (reports: ParticipantReport[], passPercentage: number) => {
     if (reports.length === 0) {
         return {
             totalParticipants: 0,
@@ -756,7 +768,8 @@ const calculateAssessmentStats = (reports: ParticipantReport[]) => {
             highestScore: 0,
             lowestScore: 0,
             averageTimeTaken: 0,
-            passRate: 0
+            passRate: 0,
+            passPercentage
         };
     }
 
@@ -777,7 +790,8 @@ const calculateAssessmentStats = (reports: ParticipantReport[]) => {
         highestScore: Math.max(...scores),
         lowestScore: Math.min(...scores),
         averageTimeTaken: times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0,
-        passRate: (passed / reports.length) * 100
+        passRate: (passed / reports.length) * 100,
+        passPercentage
     };
 };
 
@@ -813,4 +827,21 @@ const calculateViolationStats = (reports: ParticipantReport[]) => {
         byType: allViolations,
         highRiskCount
     };
+};
+
+// ============================================
+// HELPER: FORMAT DATE TO IST (People format)
+// ============================================
+
+const formatDate = (date: Date | null | undefined): string | null => {
+    if (!date) return null;
+    return new Date(date).toLocaleString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
+    }) + ' IST';
 };

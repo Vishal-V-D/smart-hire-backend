@@ -109,7 +109,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
 
     const success = await sendEmail({
       to: email,
-      subject: "Verify your SmartHire Account - Action Required",
+      subject: "Verify your email address - SmartHire Account",
       html: html_body,
       text: `Welcome to SmartHire! Please verify your email: ${verificationLink} (Expires in 1 hour)`,
     });
@@ -251,7 +251,7 @@ export const sendContestInvitation = async (
 
     const success = await sendEmail({
       to: email,
-      subject: `Assessment Invitation: ${contestTitle}`,
+      subject: `Invitation: ${contestTitle}`,
       html: html_body,
       text: `You have been invited to ${contestTitle}. Join here: ${inviteLink}`,
     });
