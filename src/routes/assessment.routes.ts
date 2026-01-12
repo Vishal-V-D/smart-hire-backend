@@ -10,6 +10,7 @@ const router = Router();
 // ORGANIZER: full access, ADMIN/COMPANY: read-only based on their access level
 router.post("/", authenticate, authorize("ORGANIZER"), assessmentCtrl.createAssessment);
 router.get("/", authenticate, authorize("ORGANIZER", "ADMIN", "COMPANY"), assessmentCtrl.listAssessments);
+router.get("/company/:companyId", authenticate, authorize("ORGANIZER"), assessmentCtrl.getCompanyAssessments);
 router.get("/:id", authenticate, authorize("ORGANIZER", "ADMIN", "COMPANY"), assessmentCtrl.getAssessment);
 router.get("/:id/submissions", authenticate, authorize("ORGANIZER", "ADMIN", "COMPANY"), reportCtrl.getAssessmentReport);
 router.patch("/:id", authenticate, authorize("ORGANIZER"), assessmentCtrl.updateAssessment);

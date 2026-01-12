@@ -395,6 +395,24 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
     }
 };
 
+// ✅ Get assessments by company ID (for Organizer viewing Company Profile)
+export const getAssessmentsByCompany = async (organizerId: string, companyId: string) => {
+    // Verify user is an organizer (or has access)
+    const user = await userRepo().findOne({ where: { id: organizerId } });
+    if (!user || user.role !== UserRole.ORGANIZER) {
+        throw { status: 403, message: "Unauthorized. Only organizers can access this." };
+    }
+
+    // Fetch assessments for the company
+    const assessments = await repo().find({
+        where: { company: { id: companyId } },
+        relations: ["organizer", "sections"],
+        order: { createdAt: "DESC" }
+    });
+
+    return assessments;
+};
+
 // ✅ Get single assessment by ID with sections and questions
 export const getAssessmentById = async (id: string, organizerId: string, skipOwnershipCheck = false): Promise<Assessment> => {
     let assessment = await repo().findOne({

@@ -160,6 +160,27 @@ export const deleteAssessment = async (req: Request, res: Response) => {
     }
 };
 
+// ✅ Get Assessments by Company (Organizer View)
+export const getCompanyAssessments = async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { companyId } = req.params;
+
+        console.log(`[GET_COMPANY_ASSESSMENTS] Organizer ${user.id} fetching for Company ${companyId}`);
+
+        const assessments = await assessmentService.getAssessmentsByCompany(user.id, companyId);
+        res.json(assessments);
+    } catch (err: any) {
+        console.error("❌ [GET_COMPANY_ASSESSMENTS] Error:", err);
+        res.status(err.status || 500).json({
+            error: {
+                code: err.status === 403 ? "FORBIDDEN" : "SERVER_ERROR",
+                message: err.message || "Server error"
+            }
+        });
+    }
+};
+
 // ✅ Publish Assessment
 export const publishAssessment = async (req: Request, res: Response) => {
     try {
