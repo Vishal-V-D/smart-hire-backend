@@ -144,8 +144,8 @@ const sendCompanyApprovalEmail = async (
  */
 export const registerCompany = async (
   companyName: string,
-  website: string,
-  details: string,
+  website: string | undefined,
+  details: string | undefined,
   contactEmail: string,
   contactPhone: string,
   adminName: string,

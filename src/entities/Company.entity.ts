@@ -26,10 +26,10 @@ export class Company {
     name: string;
 
     @Column({ type: "text", nullable: true })
-    description: string;
+    description?: string;
 
     @Column({ nullable: true })
-    website: string;
+    website?: string;
 
     @Column({ nullable: true })
     industry: string;
