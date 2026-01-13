@@ -221,4 +221,14 @@ export class CompanyController {
             res.status(error.status || 500).json({ message: error.message || "Failed to fetch history" });
         }
     }
+    // Organizer removes a company admin
+    public async removeAdmin(req: Request, res: Response) {
+        try {
+            const { companyId, userId } = req.params;
+            const result = await CompanyService.removeCompanyAdmin((req as any).user.id, companyId, userId);
+            res.json(result);
+        } catch (error: any) {
+            res.status(error.status || 500).json({ message: error.message || "Failed to remove admin" });
+        }
+    }
 }

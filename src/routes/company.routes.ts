@@ -74,6 +74,17 @@ router.post(
     }
 );
 
+// ORGANIZER: Remove/Delete an existing Admin from a Company
+router.delete(
+    "/:companyId/users/:userId",
+    checkAuth,
+    checkRole([UserRole.ORGANIZER]),
+    (req, res) => {
+        console.log(`[DEBUG] Remove Admin Request: ${req.params.userId} from Company ${req.params.companyId} by Organizer`);
+        companyController.removeAdmin(req, res);
+    }
+);
+
 // ORGANIZER: Get Pending Requests
 router.get(
     "/pending",

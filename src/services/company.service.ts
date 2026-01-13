@@ -507,7 +507,32 @@ export const assignAssessmentToCompany = async (
 export const getCompanyById = async (companyId: string) => {
   const company = await companyRepo().findOne({
     where: { id: companyId },
-    relations: ["users"]
+    relations: ["users"],
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      website: true,
+      industry: true,
+      contactEmail: true,
+      contactPhone: true,
+      status: true,
+      permissions: {
+        createAssessment: true,
+        deleteAssessment: true,
+        viewAllAssessments: true,
+      },
+      createdAt: true,
+      updatedAt: true,
+      users: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        status: true,
+        avatarUrl: true
+      }
+    }
   });
   if (!company) throw { status: 404, message: "Company not found" };
   return company;
@@ -554,18 +579,37 @@ export const setupPassword = async (token: string, password: string) => {
 /**
  * ORGANIZER ONLY: Get ALL Companies with detailed info and admin list
  */
-/**
- * ORGANIZER ONLY: Get ALL Companies with detailed info and admin list
- */
 export const getAllCompanies = async () => {
   const companies = await companyRepo().find({
     order: { createdAt: "DESC" },
-    relations: ["users"] // Includes full user objects for admins
+    relations: ["users"],
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      website: true,
+      industry: true,
+      contactEmail: true,
+      contactPhone: true,
+      status: true,
+      permissions: {
+        createAssessment: true,
+        deleteAssessment: true,
+        viewAllAssessments: true,
+      },
+      createdAt: true,
+      updatedAt: true,
+      users: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        status: true,
+        avatarUrl: true
+      }
+    }
   });
 
-  // Return full company object including:
-  // - name, website, description (details), contactEmail, contactPhone
-  // - users array (Admins)
   return companies;
 };
 
@@ -736,9 +780,48 @@ export const rejectUser = async (organizerId: string, userId: string, reason: st
   return { message: "User request rejected and removed." };
 };
 
+
 /**
- * Get History Logs for a Company
+ * ORGANIZER ONLY: Remove an Admin from a Company (even if ACTIVE)
  */
+export const removeCompanyAdmin = async (organizerId: string, companyId: string, adminId: string) => {
+  // 1. Verify Organizer
+  const organizer = await userRepo().findOne({ where: { id: organizerId } });
+  if (!organizer || organizer.role !== UserRole.ORGANIZER) {
+    throw { status: 403, message: "Only Organizers can remove admins" };
+  }
+
+  // 2. Find User
+  const adminToRemove = await userRepo().findOne({
+    where: { id: adminId },
+    relations: ["company"]
+  });
+
+  if (!adminToRemove) {
+    throw { status: 404, message: "Admin user not found" };
+  }
+
+  // 3. Verify User Belongs to the Specified Company
+  if (!adminToRemove.company || adminToRemove.company.id !== companyId) {
+    throw { status: 400, message: "User does not belong to this company" };
+  }
+
+  // 4. Prevent removing the last admin? (Optional safety check, skipping for now to allow full control)
+
+  // 5. Delete User
+  await userRepo().remove(adminToRemove);
+
+  // 6. Log Action
+  await logRequest(RequestAction.REJECT_ADMIN, organizerId, companyId, adminId, {
+    action: "REMOVE_ADMIN",
+    removedAdminEmail: adminToRemove.email,
+    removedAdminName: adminToRemove.fullName,
+    removedBy: organizer.email
+  });
+
+  return { message: "Company admin removed successfully." };
+};
+
 export const getCompanyHistory = async (companyId: string) => {
   return await getLogsForCompany(companyId);
 };
