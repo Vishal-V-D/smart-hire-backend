@@ -822,6 +822,108 @@ export const removeCompanyAdmin = async (organizerId: string, companyId: string,
   return { message: "Company admin removed successfully." };
 };
 
+/**
+ * ORGANIZER ONLY: Directly add an admin to a company
+ * Admin is created as ACTIVE and receives password setup email immediately
+ * No approval process required since organizer is adding them
+ */
+export const addAdminByOrganizer = async (
+  organizerId: string,
+  companyId: string,
+  adminName: string,
+  adminEmail: string
+) => {
+  // 1. Verify Organizer
+  const organizer = await userRepo().findOne({ where: { id: organizerId } });
+  if (!organizer || organizer.role !== UserRole.ORGANIZER) {
+    throw { status: 403, message: "Only Organizers can directly add admins" };
+  }
+
+  // 2. Verify Company
+  const company = await companyRepo().findOne({ where: { id: companyId } });
+  if (!company) {
+    throw { status: 404, message: "Company not found" };
+  }
+
+  if (company.status !== CompanyStatus.APPROVED) {
+    throw { status: 400, message: "Cannot add admin to a company that is not approved" };
+  }
+
+  // 3. Check if user already exists
+  const existingUser = await userRepo().findOne({ where: { email: adminEmail } });
+  if (existingUser) {
+    throw { status: 400, message: "User with this email already exists" };
+  }
+
+  // 4. Create Admin User (ACTIVE) with setup token
+  const setupToken = crypto.randomBytes(32).toString("hex");
+  const setupTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  const newAdmin = userRepo().create({
+    email: adminEmail,
+    fullName: adminName,
+    username: adminName.replace(/\s+/g, "").toLowerCase() + crypto.randomBytes(3).toString("hex"),
+    role: UserRole.ADMIN,
+    company: company,
+    status: AdminStatus.ACTIVE, // Directly ACTIVE since organizer is adding
+    isVerified: false, // Will be verified when they set password
+    magicLoginToken: setupToken,
+    magicLoginTokenExpiry: setupTokenExpiry,
+  });
+
+  await userRepo().save(newAdmin);
+
+  // 5. Send Setup Email
+  try {
+    await sendCompanyApprovalEmail(adminEmail, adminName, company.name, setupToken);
+    console.log(`   ✅ Sent setup email to ${adminEmail}`);
+  } catch (error) {
+    console.error(`   ❌ Failed to send email to ${adminEmail}:`, error);
+    // Don't throw - admin is created, email can be resent
+  }
+
+  // 🔔 Notify Company Admins (existing ones)
+  try {
+    const { createNotification } = require("./notification.service");
+    const { NotificationType } = require("../entities/Notification.entity");
+
+    await createNotification({
+      type: NotificationType.ADMIN_APPROVED,
+      title: "New Admin Added",
+      message: `${adminName} has been added as an admin to ${company.name} by the organizer.`,
+      data: {
+        companyId: company.id,
+        companyName: company.name,
+        adminId: newAdmin.id,
+        adminEmail: adminEmail,
+        adminName: adminName,
+        addedBy: organizer.fullName || organizer.email
+      },
+      companyId: company.id // Target all admins in this company
+    });
+  } catch (error) {
+    console.error("Failed to create notification:", error);
+  }
+
+  // 📜 Log History
+  await logRequest(RequestAction.APPROVE_ADMIN, organizerId, companyId, newAdmin.id, {
+    action: "ORGANIZER_ADD_ADMIN",
+    adminName,
+    adminEmail,
+    addedBy: organizer.email
+  });
+
+  return {
+    message: "Admin added successfully. Setup email sent.",
+    admin: {
+      id: newAdmin.id,
+      email: newAdmin.email,
+      fullName: newAdmin.fullName,
+      status: newAdmin.status
+    }
+  };
+};
+
 export const getCompanyHistory = async (companyId: string) => {
   return await getLogsForCompany(companyId);
 };

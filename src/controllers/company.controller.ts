@@ -231,4 +231,20 @@ export class CompanyController {
             res.status(error.status || 500).json({ message: error.message || "Failed to remove admin" });
         }
     }
+
+    // ORGANIZER: Directly add admin to company
+    public async addAdminByOrganizer(req: Request, res: Response) {
+        try {
+            const { companyId, adminName, adminEmail } = req.body;
+            const result = await CompanyService.addAdminByOrganizer(
+                (req as any).user.id,
+                companyId,
+                adminName,
+                adminEmail
+            );
+            res.status(201).json(result);
+        } catch (error: any) {
+            res.status(error.status || 500).json({ message: error.message || "Failed to add admin" });
+        }
+    }
 }

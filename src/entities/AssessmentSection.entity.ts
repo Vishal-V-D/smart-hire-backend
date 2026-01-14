@@ -110,14 +110,20 @@ export class AssessmentSection {
     updatedAt: Date;
 
     // Questions in this section (MCQ, fill-in-blank, etc.)
-    @OneToMany(() => Question, (question) => question.section)
+    @OneToMany(() => Question, (question) => question.section, {
+        cascade: true, // ✅ Allows saving nested questions
+    })
     questions: Question[];
 
     // Coding problems in this section
-    @OneToMany(() => SectionProblem, (sp) => sp.section)
+    @OneToMany(() => SectionProblem, (sp) => sp.section, {
+        cascade: true,
+    })
     problems: SectionProblem[];
 
     // SQL questions in this section
-    @OneToMany(() => SqlQuestion, (sqlQuestion) => sqlQuestion.section)
+    @OneToMany(() => SqlQuestion, (sqlQuestion) => sqlQuestion.section, {
+        cascade: true,
+    })
     sqlQuestions: SqlQuestion[];
 }

@@ -41,6 +41,17 @@ router.post(
     }
 );
 
+// ORGANIZER: Directly Add Admin to Company
+router.post(
+    "/add-admin-by-organizer",
+    checkAuth,
+    checkRole([UserRole.ORGANIZER]),
+    (req, res) => {
+        console.log(`[DEBUG] Add Admin by Organizer Request: ${req.body.adminEmail} to Company ${req.body.companyId}`);
+        companyController.addAdminByOrganizer(req, res);
+    }
+);
+
 // ORGANIZER: Approve Specific User
 router.post(
     "/users/:userId/approve",

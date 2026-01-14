@@ -43,7 +43,8 @@ export interface ProctoringConfig {
 }
 
 export enum AssessmentStatus {
-    DRAFT = "draft",
+    DRAFT = "draft",        // Incomplete
+    READY = "ready",        // Complete but not published
     PUBLISHED = "published",
     ACTIVE = "active",
     COMPLETED = "completed",
@@ -170,6 +171,8 @@ export class Assessment {
     updatedAt: Date;
 
     // Sections in this assessment
-    @OneToMany(() => AssessmentSection, (section) => section.assessment)
+    @OneToMany(() => AssessmentSection, (section) => section.assessment, {
+        cascade: true, // ✅ Allows saving nested sections
+    })
     sections: AssessmentSection[];
 }

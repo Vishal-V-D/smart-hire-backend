@@ -353,6 +353,23 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
         assessment.totalQuestions = totalQuestions;
         assessment.totalMarks = totalMarks;
         assessment.totalTime = totalTime;
+
+        // ⭐ AUTO-READY LOGIC ⭐
+        // Check if assessment is complete enough to be READY
+        let isReady = false;
+        if (assessment.totalSections > 0 && assessment.totalQuestions > 0) {
+            // Also check basics
+            if (assessment.title && assessment.title.length >= 5) {
+                isReady = true;
+            }
+        }
+
+        // Only auto-upgrade to READY if currently DRAFT
+        if (assessment.status === AssessmentStatus.DRAFT && isReady) {
+            assessment.status = AssessmentStatus.READY;
+            console.log(`✨ Auto-upgrading assessment status to READY (Ready for publishing)`);
+        }
+
         await queryRunner.manager.save(assessment);
 
         // ⭐ Print formatted table with section data + overall summary
@@ -363,6 +380,7 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
         console.log(`   ✅ Total Questions: ${totalQuestions}`);
         console.log(`   ✅ Total Marks: ${totalMarks}`);
         console.log(`   ✅ Total Time: ${totalTime} minutes`);
+        console.log(`   ✅ Status: ${assessment.status}`);
 
         // Commit transaction
         await queryRunner.commitTransaction();
@@ -452,9 +470,12 @@ export const getAssessmentById = async (id: string, organizerId: string, skipOwn
     if (assessment.sections) {
         assessment.sections.sort((a, b) => a.order - b.order);
         for (const section of assessment.sections) {
+            // Sort existing MCQs
             if (section.questions) {
                 section.questions.sort((a, b) => a.order - b.order);
             }
+
+            // ⭐ UNIFY DATA FOR FRONTEND: Logic Removed - Frontend expects 'problems' key.
         }
     }
 
@@ -494,9 +515,11 @@ export const getAssessmentById = async (id: string, organizerId: string, skipOwn
         if (problems.length > 0) {
             problems.forEach((sp, pIdx) => {
                 const p = sp.problem;
-                console.log(`         💻 [P${pIdx + 1}] FULL PROBLEM DATA:`);
-                console.log(JSON.stringify(p, null, 2));
-                console.log(`             LinkID: ${sp.id}, Section Marks: ${sp.marks}`);
+                console.log(`         💻 [P${pIdx + 1}] Title: "${p?.title || 'Unknown'}"`);
+                console.log(`             Link ID: ${sp.id}`);
+                console.log(`             Prob ID: ${p?.id}`);
+                console.log(`             Marks:   ${sp.marks}`);
+                console.log(`             -----------------------`);
             });
         } else {
             console.log(`         (No coding problems linked)`);
@@ -576,6 +599,18 @@ export const listAssessments = async (
         data[i] = await checkAndUpdateAssessmentStatus(data[i]);
     }
 
+    // 🔍 DEBUG: Log summary of what we are sending
+    console.log(`📋 [LIST_ASSESSMENTS] Returning ${data.length} items (Total: ${total})`);
+    if (data.length > 0) {
+        data.slice(0, 3).forEach((ass, idx) => {
+            console.log(`   🔸 [${idx + 1}] "${ass.title}"`);
+            console.log(`       ID: ${ass.id}`);
+            console.log(`       Status: ${ass.status}`);
+            console.log(`       Questions: ${ass.totalQuestions} | Marks: ${ass.totalMarks}`);
+            console.log(`       Sections: ${ass.sections?.length || 0}`);
+        });
+    }
+
     return {
         data,
         pagination: {
@@ -591,10 +626,116 @@ export const listAssessments = async (
 export const updateAssessment = async (id: string, organizerId: string, data: any): Promise<Assessment> => {
     const assessment = await repo().findOne({
         where: { id },
-        relations: ["organizer"],
+        relations: ["organizer", "sections", "sections.questions", "sections.problems"], // ✅ Load full tree
     });
 
     if (!assessment) throw { status: 404, message: "Assessment not found" };
+
+    // ⭐ PRE-PROCESS DATA: separate Coding questions from regular Questions
+    if (data.sections && Array.isArray(data.sections)) {
+        console.log(`[UPDATE_DEBUG] Processing ${data.sections.length} sections from payload`);
+
+        for (const section of data.sections) {
+            console.log(`   [UPDATE_DEBUG] Section: ${section.title} (ID: ${section.id})`);
+            console.log(`      -> Keys received: ${Object.keys(section).join(', ')}`);
+            console.log(`      -> Questions provided: ${section.questions?.length || 0}`);
+            console.log(`      -> Problems provided: ${section.problems?.length || 0}`);
+
+            if (section.questions && Array.isArray(section.questions)) {
+                // Find existing section entity to check for existing links
+                const existingSection = assessment.sections?.find(s => s.id === section.id);
+
+                const codingQuestions: any[] = [];
+                const regularQuestions: any[] = [];
+
+                for (const q of section.questions) {
+                    if (q.type === 'coding') {
+                        // 🔍 Robustly find Problem ID (frontend might send problemId or nested problem object)
+                        let pid = q.problemId || q.problem?.id;
+
+                        // ⭐ FALLBACK: If problemId is missing but we have an ID (SectionProblem ID),
+                        // try to find it in existing data
+                        if (!pid && q.id && existingSection?.problems) {
+                            const existingProblem = existingSection.problems.find(p => p.id === q.id);
+                            if (existingProblem) {
+                                pid = existingProblem.problem?.id;
+                                console.log(`   🔍 [FALLBACK] Found problemId from existing data: ${pid} for SP_ID: ${q.id}`);
+                            }
+                        }
+
+                        if (!pid) {
+                            // This is expected if the frontend sends the Coding Question in 'questions' array (incomplete) 
+                            // AND in 'problems' array (complete). We skip this one and rely on 'problems' array.
+                            console.log(`   ℹ️ [UPDATE] Skipping incomplete coding question in 'questions' list (missing problemId). Expecting it in 'problems' list. ID: ${q.id}`);
+                            continue;
+                        }
+
+                        // ⭐ SMART MATCH: If ID is missing, check if this problem is already linked
+                        let spId = q.id;
+                        if (!spId && existingSection?.problems) {
+                            const existingLink = existingSection.problems.find(p => p.problem?.id === pid);
+                            if (existingLink) {
+                                spId = existingLink.id;
+                                console.log(`   💡 [SMART_MATCH] Found existing link for Problem ${pid} -> Using SP_ID: ${spId}`);
+                            }
+                        }
+
+                        // Transform to SectionProblem structure
+                        codingQuestions.push({
+                            id: spId, // Use explicit or discovered ID
+                            problem: { id: pid }, // Link to Problem entity
+                            order: q.order !== undefined ? q.order : 0,
+                            marks: q.marks !== undefined ? q.marks : (q.problem?.marks || 10),
+                            testCaseConfig: q.testCaseConfig
+                        });
+                        console.log(`   🔄 [TRANSFORM] Mapped Coding Question: SP_ID=${spId || 'NEW'}, Problem_ID=${pid}`);
+                    } else {
+                        regularQuestions.push(q);
+                    }
+                }
+
+                // Reassign to correct properties for TypeORM Cascade
+                section.questions = regularQuestions;
+
+                // Merge with existing problems or set new ones
+                // Note: If frontend manages the whole list, we might want to overwrite
+                // But typically problems might be sent as 'questions' by unified frontend editors
+                if (codingQuestions.length > 0) {
+                    section.problems = codingQuestions;
+                }
+            }
+
+            // ⭐ ALSO PRE-PROCESS 'PROBLEMS' ARRAY (If frontend sends them separately)
+            if (section.problems && Array.isArray(section.problems)) {
+                // Find existing section entity to check for existing links
+                const existingSection = assessment.sections?.find(s => s.id === section.id);
+
+                for (const p of section.problems) {
+                    // Check if problem ID is accessible (could be 'problem.id' or 'problemId' or just embedded)
+                    const pid = p.problem?.id || p.problemId;
+
+                    if (pid) {
+                        // ⭐ SMART MATCH: If Link ID is missing, find it
+                        if (!p.id && existingSection?.problems) {
+                            const existingLink = existingSection.problems.find(ep => ep.problem?.id === pid);
+                            if (existingLink) {
+                                p.id = existingLink.id; // Inject existing ID
+                                console.log(`   💡 [SMART_MATCH_PROBLEMS] Found existing link for Problem ${pid} -> Using SP_ID: ${p.id}`);
+                            }
+                        }
+
+                        // ⭐ NORMALIZATION: Ensure 'problem' relation object exists for TypeORM
+                        // TypeORM requires { problem: { id: ... } } to save the relation.
+                        if (!p.problem) {
+                            p.problem = { id: pid };
+                        } else if (!p.problem.id) {
+                            p.problem.id = pid;
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Only owner can update OR the company approver (Organizer)
     let hasAccess = false;
@@ -648,8 +789,83 @@ export const updateAssessment = async (id: string, organizerId: string, data: an
     delete data.publishedAt;
     delete data.organizer;
 
-    Object.assign(assessment, data);
-    return await repo().save(assessment) as unknown as Assessment;
+    // Don't allow changing status directly via generic update
+    // delete data.status; // Handled by selective update
+
+    // ⚠️ CRITICAL: Extract sections to update them manually
+    const sectionsData = data.sections;
+
+    // ⭐ SAFE UPDATE: Only update allowed top-level fields
+    // This prevents accidental overwriting of 'sections' or other relations
+    if (data.title) assessment.title = data.title;
+    if (data.description !== undefined) assessment.description = data.description;
+    if (data.startDate) assessment.startDate = new Date(data.startDate);
+    if (data.endDate) assessment.endDate = new Date(data.endDate);
+    if (data.timeMode) assessment.timeMode = data.timeMode;
+    if (data.globalTime !== undefined) assessment.globalTime = data.globalTime;
+    if (data.duration !== undefined) assessment.duration = data.duration;
+    if (data.passPercentage !== undefined) assessment.passPercentage = data.passPercentage;
+    if (data.allowPreviousNavigation !== undefined) assessment.allowPreviousNavigation = data.allowPreviousNavigation;
+    if (data.allowMarkForReview !== undefined) assessment.allowMarkForReview = data.allowMarkForReview;
+
+    // Update JSONB configs strictly if provided
+    if (data.proctoring) {
+        assessment.proctoring = { ...assessment.proctoring, ...data.proctoring };
+    }
+
+    // ⭐ Manually update sections to preserve entity tracking
+    if (sectionsData && Array.isArray(sectionsData)) {
+        console.log(`[UPDATE] Processing ${sectionsData.length} sections manually...`);
+        for (const sectionData of sectionsData) {
+            const existingSection = assessment.sections?.find(s => s.id === sectionData.id);
+
+            if (existingSection) {
+                // Update existing section
+                Object.assign(existingSection, {
+                    title: sectionData.title,
+                    description: sectionData.description,
+                    type: sectionData.type,
+                    questionCount: sectionData.questionCount,
+                    marksPerQuestion: sectionData.marksPerQuestion,
+                    timeLimit: sectionData.timeLimit,
+                    negativeMarking: sectionData.negativeMarking,
+                    difficulty: sectionData.difficulty,
+                    enabledPatterns: sectionData.enabledPatterns,
+                    themeColor: sectionData.themeColor,
+                    order: sectionData.orderIndex || sectionData.order
+                });
+
+                // Update questions and problems arrays (these are already processed/normalized above)
+                if (sectionData.questions !== undefined) {
+                    existingSection.questions = sectionData.questions;
+                }
+                if (sectionData.problems !== undefined) {
+                    // ⚠️ CRITICAL: Convert plain objects to TypeORM entities
+                    const sectionProblemRepo = AppDataSource.getRepository("SectionProblem");
+                    existingSection.problems = sectionData.problems.map((p: any) => {
+                        // If it has an ID, it's an update; otherwise it's new
+                        return sectionProblemRepo.create({
+                            id: p.id,
+                            problem: p.problem,
+                            section: existingSection,
+                            marks: p.marks,
+                            order: p.order,
+                            testCaseConfig: p.testCaseConfig
+                        });
+                    });
+                }
+            }
+        }
+    }
+
+    await repo().save(assessment);
+
+    // ⭐ Recalculate totals (marks, questions) after update
+    // This ensures Dashboard List View has accurate counts even for DRAFTs
+    await recalculateTotals(assessment.id);
+
+    // Fetch fresh copy to return with updated totals
+    return await getAssessmentById(assessment.id, organizerId, true);
 };
 
 export const deleteAssessment = async (id: string, userId: string): Promise<{ message: string }> => {
@@ -689,8 +905,8 @@ export const deleteAssessment = async (id: string, userId: string): Promise<{ me
         throw { status: 403, message: "Unauthorized action" };
     }
 
-    if (assessment.status !== AssessmentStatus.DRAFT) {
-        throw { status: 409, message: "Can only delete assessments in draft status" };
+    if (assessment.status !== AssessmentStatus.DRAFT && assessment.status !== AssessmentStatus.READY) {
+        throw { status: 409, message: "Can only delete assessments in draft or ready status" };
     }
 
     await repo().remove(assessment);
@@ -727,8 +943,8 @@ export const publishAssessment = async (id: string, organizerId: string): Promis
         throw { status: 403, message: "Access denied" };
     }
 
-    if (assessment.status !== AssessmentStatus.DRAFT) {
-        throw { status: 409, message: "Only draft assessments can be published" };
+    if (assessment.status !== AssessmentStatus.DRAFT && assessment.status !== AssessmentStatus.READY) {
+        throw { status: 409, message: "Only draft or ready assessments can be published" };
     }
 
     // Validation: must have at least 1 section
@@ -789,6 +1005,7 @@ export const recalculateTotals = async (assessmentId: string): Promise<void> => 
 
     let totalMarks = 0;
     let totalQuestions = 0;
+    let totalSectionTime = 0;
 
     for (const section of assessment.sections || []) {
         // Count regular questions
@@ -802,10 +1019,37 @@ export const recalculateTotals = async (assessmentId: string): Promise<void> => 
         for (const sp of section.problems || []) {
             totalMarks += sp.marks || 10;
         }
+
+        // Sum section time
+        totalSectionTime += section.timeLimit || 0;
     }
 
     assessment.totalMarks = totalMarks;
     assessment.totalQuestions = totalQuestions;
+    assessment.totalSections = assessment.sections?.length || 0; // ⭐ Update section count
+
+    // Auto-update totalTime if in section mode
+    if (assessment.timeMode === 'section' || !assessment.totalTime) {
+        assessment.totalTime = totalSectionTime;
+    }
+
+    // ⭐ AUTO-STATUS UPDATE ⭐
+    // Only affect DRAFT or READY states
+    if (assessment.status === AssessmentStatus.DRAFT || assessment.status === AssessmentStatus.READY) {
+        const isComplete = assessment.totalSections > 0 && assessment.totalQuestions > 0 && (assessment.title?.length || 0) >= 5;
+
+        console.log(`🔍 [STATUS_CHECK] ID: ${assessment.id} | Complete: ${isComplete}`);
+        console.log(`   Stats: Sections=${assessment.totalSections}, Questions=${assessment.totalQuestions}, TitleLen=${assessment.title?.length}`);
+
+        if (isComplete && assessment.status === AssessmentStatus.DRAFT) {
+            assessment.status = AssessmentStatus.READY;
+            console.log(`✨ [AUTO] Upgraded Assessment ${assessment.id} to READY`);
+        } else if (!isComplete && assessment.status === AssessmentStatus.READY) {
+            assessment.status = AssessmentStatus.DRAFT;
+            console.log(`📉 [AUTO] Downgraded Assessment ${assessment.id} to DRAFT (Incomplete)`);
+        }
+    }
+
     await repo().save(assessment);
 };
 // 🕵️ Plagiarism Configuration Methods
