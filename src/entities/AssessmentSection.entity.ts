@@ -34,6 +34,9 @@ export enum ThemeColor {
     BLUE = "blue",
     ORANGE = "orange",
     GRAY = "gray",
+    CYAN = "cyan",
+    RED = "red",
+    TEAL = "teal",
 }
 
 @Entity("assessment_sections")

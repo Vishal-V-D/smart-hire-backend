@@ -89,6 +89,10 @@ export class SqlQuestion {
     @Column({ type: "varchar", length: 100, nullable: true })
     subdivision: string;
 
+    // Division for main category
+    @Column({ type: "varchar", length: 100, nullable: true })
+    division: string;
+
     // Per-question difficulty override
     @Column({
         type: "enum",
@@ -96,6 +100,14 @@ export class SqlQuestion {
         nullable: true,
     })
     difficulty: SqlQuestionDifficulty;
+
+    // Input tables structure (JSON)
+    @Column({ type: "jsonb", nullable: true })
+    inputTables: any;
+
+    // Hint for the student
+    @Column({ type: "text", nullable: true })
+    hint: string;
 
     // Time limit in seconds (optional)
     @Column({ type: "int", nullable: true })

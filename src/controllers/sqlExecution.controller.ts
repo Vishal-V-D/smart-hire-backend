@@ -4,6 +4,9 @@ import {
     submitSqlQuery,
     getSqlQuestion,
     getAllSqlQuestions,
+    getSqlFilterOptions,
+    updateSqlQuestion,
+    deleteSqlQuestion,
 } from "../services/sqlExecution.service";
 import { SqlDialect } from "../entities/SqlQuestion.entity";
 
@@ -219,13 +222,16 @@ export const getSqlQuestionById = async (req: Request, res: Response) => {
  */
 export const getSqlQuestions = async (req: Request, res: Response) => {
     try {
-        const { dialect, difficulty, topic, subdivision } = req.query;
+        const { dialect, difficulty, topic, subdivision, division } = req.query;
 
         const filters: any = {};
         if (dialect) filters.dialect = dialect as SqlDialect;
         if (difficulty) filters.difficulty = difficulty as string;
         if (topic) filters.topic = topic as string;
         if (subdivision) filters.subdivision = subdivision as string;
+        if (division) filters.division = division as string;
+
+        console.log(`🔍 [GET_SQL_QUESTIONS] Received filters:`, filters);
 
         const questions = await getAllSqlQuestions(filters);
 
@@ -234,6 +240,8 @@ export const getSqlQuestions = async (req: Request, res: Response) => {
             const { expectedQuery, expectedResult, ...rest } = q;
             return rest;
         });
+
+        console.log(`✅ [GET_SQL_QUESTIONS] Returning ${sanitizedQuestions.length} questions`);
 
         return res.status(200).json({
             success: true,
@@ -246,6 +254,118 @@ export const getSqlQuestions = async (req: Request, res: Response) => {
             success: false,
             message: "Failed to retrieve SQL questions",
             error: error.message,
+        });
+    }
+};
+
+/**
+ * @swagger
+ * /api/sql/filters:
+ *   get:
+ *     summary: Get filter options for SQL questions
+ *     tags: [SQL]
+ *     responses:
+ *       200:
+ *         description: Filter options retrieved
+ *       500:
+ *         description: Server error
+ */
+export const getSqlFilters = async (req: Request, res: Response) => {
+    try {
+        const filters = await getSqlFilterOptions();
+        return res.status(200).json({
+            success: true,
+            filters,
+        });
+    } catch (error: any) {
+        console.error(`❌ Get SQL Filters Error: ${error.message}`);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to retrieve SQL filters",
+            error: error.message,
+        });
+    }
+};
+
+/**
+ * @swagger
+ * /api/sql/question/{id}:
+ *   put:
+ *     summary: Update SQL question
+ *     tags: [SQL]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Question updated successfully
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Server error
+ */
+export const updateSqlQuestionController = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+
+        const updatedQuestion = await updateSqlQuestion(id, updateData);
+
+        return res.status(200).json({
+            success: true,
+            message: "SQL question updated successfully",
+            question: updatedQuestion,
+        });
+    } catch (error: any) {
+        console.error(`❌ Update SQL Question Error: ${error.message}`);
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Failed to update SQL question",
+        });
+    }
+};
+
+/**
+ * @swagger
+ * /api/sql/question/{id}:
+ *   delete:
+ *     summary: Delete SQL question
+ *     tags: [SQL]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Question deleted successfully
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Server error
+ */
+export const deleteSqlQuestionController = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const result = await deleteSqlQuestion(id);
+
+        return res.status(200).json(result);
+    } catch (error: any) {
+        console.error(`❌ Delete SQL Question Error: ${error.message}`);
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Failed to delete SQL question",
         });
     }
 };

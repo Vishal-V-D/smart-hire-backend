@@ -6,8 +6,12 @@ import AdmZip from "adm-zip";
 import { Readable } from "stream";
 import path from "path";
 import fs from "fs";
+import * as XLSX from "xlsx";
+
+import { SqlQuestion, SqlQuestionDifficulty } from "../entities/SqlQuestion.entity";
 
 const questionRepo = () => AppDataSource.getRepository(Question);
+const sqlQuestionRepo = () => AppDataSource.getRepository(SqlQuestion);
 
 // Validation result interface
 interface ValidationError {
@@ -91,7 +95,15 @@ function getSolutionValue(row: any): string | number | undefined {
         "Solution (Correct Option Number)",
         "Correct Answer",
         "CorrectAnswer",
-        "Answer"
+        "Solution (Correct Option Number)",
+        "Correct Answer",
+        "CorrectAnswer",
+        "Solution (Correct Option Number)",
+        "Correct Answer",
+        "CorrectAnswer",
+        "Answer",
+        "solution",
+        "solution"
     ];
 
     for (const colName of solutionColumnNames) {
@@ -164,20 +176,31 @@ function validateCSVRow(row: any, rowNumber: number): ValidationError[] {
     }
 
     // Required: Question text
-    if (!row.Question || row.Question.trim() === "") {
-        errors.push({ row: rowNumber, field: "Question", error: "Question text is required" });
+    // Required: Question text (check case insensitive)
+    const questionKey = Object.keys(row).find(k => k.toLowerCase() === 'question' || k.toLowerCase() === 'questiontext');
+    if (!questionKey || !row[questionKey] || row[questionKey].toString().trim() === "") {
+        // Skip validation if it's a SQL question (uses different required fields like question_tables/expected_output)
+        const isSqlInfoPresent = Object.keys(row).some(k => ['question_tables', 'expected_output', 'solution'].includes(k.toLowerCase()));
+        if (!isSqlInfoPresent) {
+            errors.push({ row: rowNumber, field: "Question", error: "Question text is required" });
+        }
     }
 
     // Required: Solution (correct answer) - check multiple possible column names
     const solutionValue = getSolutionValue(row);
+
     if (solutionValue === undefined) {
-        errors.push({
-            row: rowNumber,
-            field: "Solution",
-            error: `Solution (correct answer) is required. Checked columns: Solution, Solution (Correct Option Number), Correct Answer`
-        });
-        if (rowNumber === 1) {
-            console.log(`⚠️ [CSV] Row 1 - No solution found. Available columns:`, Object.keys(row));
+        // Skip validation if it's a SQL question (might use 'solution' or 'expected_query' which are checked in SQL parser)
+        const isSqlInfoPresent = Object.keys(row).some(k => ['question_tables', 'expected_output', 'solution'].includes(k.toLowerCase()));
+        if (!isSqlInfoPresent) {
+            errors.push({
+                row: rowNumber,
+                field: "Solution",
+                error: `Solution (correct answer) is required. Checked columns: Solution, Solution (Correct Option Number), Correct Answer`
+            });
+            if (rowNumber === 1) {
+                console.log(`⚠️ [CSV] Row 1 - No solution found. Available columns:`, Object.keys(row));
+            }
         }
     }
 
@@ -291,6 +314,73 @@ function parseCSVRow(
     return question;
 }
 
+// Parse CSV row to SqlQuestion entity
+function parseSqlCSVRow(
+    row: any,
+    division?: string,
+    subdivision?: string,
+    topic?: string
+): Partial<SqlQuestion> {
+    // Helper to find value case-insensitively
+    const findVal = (keys: string[]) => {
+        const foundKey = Object.keys(row).find(k => keys.includes(k.toLowerCase().trim()));
+        return foundKey ? row[foundKey] : undefined;
+    };
+
+    const rowDivision = findVal(['division', 'maintype'])?.trim() || division;
+
+    // Map CSV headers to SqlQuestion fields
+    // User requested format: s.no, topic, subtopic, subsubtopic, level, question, question_tables, expected_output, hint, solution
+
+    const rowTopic = findVal(['topic'])?.trim() || topic;
+    const rowSubtopic = findVal(['subtopic', 'subdivision'])?.trim() || subdivision;
+    const rowSubSubtopic = findVal(['subsubtopic'])?.trim();
+    const tags = rowSubSubtopic ? [rowSubSubtopic] : [];
+
+    const difficultyStr = findVal(['level', 'difficulty'])?.trim();
+    let difficulty = SqlQuestionDifficulty.MEDIUM;
+    if (difficultyStr) {
+        if (difficultyStr.toLowerCase() === 'easy') difficulty = SqlQuestionDifficulty.EASY;
+        else if (difficultyStr.toLowerCase() === 'hard') difficulty = SqlQuestionDifficulty.HARD;
+    }
+
+    const questionText = findVal(['question', 'questiontext'])?.trim();
+
+    // Parse JSON fields
+    let inputTables = null;
+    try {
+        const tablesStr = findVal(['question_tables', 'questiontables'])?.trim();
+        if (tablesStr) inputTables = JSON.parse(tablesStr);
+    } catch (e) {
+        console.warn("Failed to parse question_tables JSON");
+    }
+
+    let expectedResult = null;
+    try {
+        const resultStr = findVal(['expected_output', 'expectedoutput', 'expectedresult'])?.trim();
+        if (resultStr) expectedResult = JSON.parse(resultStr);
+    } catch (e) {
+        console.warn("Failed to parse expected_output JSON");
+    }
+
+    return {
+        title: questionText ? (questionText.length > 50 ? questionText.substring(0, 47) + "..." : questionText) : "SQL Question",
+        description: questionText,
+        division: rowDivision,
+        topic: rowTopic,
+        subdivision: rowSubtopic,
+        tags: tags,
+        difficulty: difficulty,
+        schemaSetup: "-- Schema defined in inputTables",
+        sampleData: "-- Data defined in inputTables",
+        inputTables: inputTables,
+        expectedQuery: findVal(['solution', 'expectedquery', 'answer'])?.trim(),
+        expectedResult: expectedResult,
+        hint: findVal(['hint'])?.trim(),
+        dialect: "postgresql" as any // Default to postgres or as needed
+    };
+}
+
 // Upload CSV file
 export async function uploadCSV(
     fileBuffer: Buffer,
@@ -330,48 +420,85 @@ export async function uploadCSV(
                     if (validationErrors.length > 0) {
                         summary.errors.push(...validationErrors);
                         summary.failed++;
-                        console.log(`[${rowNumber}/${rows.length}] ❌ Validation failed`);
+                        console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                        console.log(`[${rowNumber}/${rows.length}] ❌ VALIDATION FAILED`);
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                        validationErrors.forEach(err => {
+                            console.log(`⚠️  ${err.field}: ${err.error}`);
+                        });
+                        console.log(`clipboard ROW DATA: ${JSON.stringify(row)}`);
+                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
                         continue;
                     }
 
                     try {
-                        // Parse and save question
-                        const questionData = parseCSVRow(row, division, subdivision, topic);
-                        const question = questionRepo().create(questionData);
-                        await questionRepo().save(question);
+                        // Check if it's a SQL question (has question_tables or specific CSV structure - Case Insensitive Check)
+                        const keys = Object.keys(row);
+                        const hasQuestionTables = keys.some(k => k.toLowerCase() === 'question_tables');
+                        const hasExpectedOutput = keys.some(k => k.toLowerCase() === 'expected_output');
 
-                        summary.success++;
+                        if (hasQuestionTables || hasExpectedOutput) {
+                            const sqlQuestionData = parseSqlCSVRow(row, division, subdivision, topic);
+                            // Validate required fields for SQL
+                            if (!sqlQuestionData.description || !sqlQuestionData.expectedQuery) {
+                                throw new Error("Missing required fields for SQL Question (question, solution)");
+                            }
+                            const sqlQuestion = sqlQuestionRepo().create(sqlQuestionData);
+                            await sqlQuestionRepo().save(sqlQuestion);
 
-                        // Track statistics
-                        if (questionData.pseudocode) {
-                            summary.pseudocodeCount!++;
+                            // Update stats for SQL
+                            const div = sqlQuestionData.division || 'Uncategorized';
+                            summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+                            summary.typeBreakdown!['SQL'] = (summary.typeBreakdown!['SQL'] || 0) + 1;
+
+                            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`[${rowNumber}/${rows.length}] ✅ SQL QUESTION UPLOADED SUCCESSFULLY`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`📂 DIVISION    : ${sqlQuestionData.division || 'N/A'}`);
+                            console.log(`📁 SUBDIVISION : ${sqlQuestionData.subdivision || 'N/A'}`);
+                            console.log(`🏷️  TOPIC       : ${sqlQuestionData.topic || 'N/A'}`);
+                            console.log(`📝 QUESTION    : ${sqlQuestionData.description?.substring(0, 60)}...`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+                        } else {
+                            // Parse and save regular question
+                            const questionData = parseCSVRow(row, division, subdivision, topic);
+                            const question = questionRepo().create(questionData);
+                            await questionRepo().save(question);
+
+                            // Track statistics
+                            if (questionData.pseudocode) {
+                                summary.pseudocodeCount!++;
+                            }
+
+                            const div = questionData.division || 'Uncategorized';
+                            summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+
+                            const type = questionData.type || 'Unknown';
+                            summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
+
+                            // Enhanced Detailed Logging
+                            const divisionLabel = questionData.division || 'N/A';
+                            const subdivisionLabel = questionData.subdivision || 'N/A';
+                            const topicLabel = questionData.topic || 'N/A';
+                            const typeLabel = questionData.type || 'N/A';
+                            const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
+                            const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
+
+                            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                            console.log(`📂 DIVISION    : ${divisionLabel}`);
+                            console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
+                            console.log(`🏷️  TOPIC       : ${topicLabel}`);
+                            console.log(`📝 TYPE        : ${typeLabel}`);
+                            console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
+                            console.log(`🔢 OPTIONS     : ${hasOptions}`);
+                            console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
+                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
                         }
 
-                        const div = questionData.division || 'Uncategorized';
-                        summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
-
-                        const type = questionData.type || 'Unknown';
-                        summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
-
-                        // Enhanced Detailed Logging
-                        const divisionLabel = questionData.division || 'N/A';
-                        const subdivisionLabel = questionData.subdivision || 'N/A';
-                        const topicLabel = questionData.topic || 'N/A';
-                        const typeLabel = questionData.type || 'N/A';
-                        const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
-                        const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
-
-                        console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-                        console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY`);
-                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-                        console.log(`📂 DIVISION    : ${divisionLabel}`);
-                        console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
-                        console.log(`🏷️  TOPIC       : ${topicLabel}`);
-                        console.log(`📝 TYPE        : ${typeLabel}`);
-                        console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
-                        console.log(`🔢 OPTIONS     : ${hasOptions}`);
-                        console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
-                        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                        summary.success++;
                     } catch (error: any) {
                         summary.errors.push({
                             row: rowNumber,
@@ -400,6 +527,14 @@ export async function uploadCSV(
                 console.log(`   ├─ ❌ Failed          : ${summary.failed}`);
                 console.log(`   └─ 💻 With Pseudocode : ${summary.pseudocodeCount}\n`);
 
+                if (summary.errors.length > 0) {
+                    console.log(`❌ ERROR DETAILS:`);
+                    summary.errors.forEach(err => {
+                        console.log(`   Row ${err.row}: [${err.field}] ${err.error}`);
+                    });
+                    console.log('');
+                }
+
                 if (Object.keys(summary.divisionBreakdown!).length > 0) {
                     console.log(`📂 DIVISION BREAKDOWN:`);
                     Object.entries(summary.divisionBreakdown!).forEach(([div, count]) => {
@@ -422,6 +557,178 @@ export async function uploadCSV(
                 reject(error);
             });
     });
+}
+
+// Upload Excel file
+export async function uploadExcel(
+    fileBuffer: Buffer,
+    division?: string,
+    subdivision?: string,
+    topic?: string
+): Promise<UploadSummary> {
+    const summary: UploadSummary = {
+        total: 0,
+        success: 0,
+        failed: 0,
+        errors: [],
+        pseudocodeCount: 0,
+        divisionBreakdown: {},
+        typeBreakdown: {},
+    };
+
+    try {
+        const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        console.log(`\n📊 Processing ${rows.length} questions from Excel...\n`);
+        summary.total = rows.length;
+
+        for (let i = 0; i < rows.length; i++) {
+            const row: any = rows[i];
+            const rowNumber = i + 1;
+
+            // Validate row
+            const validationErrors = validateCSVRow(row, rowNumber);
+            if (validationErrors.length > 0) {
+                summary.errors.push(...validationErrors);
+                summary.failed++;
+                console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`[${rowNumber}/${rows.length}] ❌ VALIDATION FAILED`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                validationErrors.forEach(err => {
+                    console.log(`⚠️  ${err.field}: ${err.error}`);
+                });
+                console.log(`clipboard ROW DATA: ${JSON.stringify(row)}`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                continue;
+            }
+
+            try {
+                // Check if it's a SQL question (has question_tables or specific Excel structure - Case Insensitive Check)
+                const keys = Object.keys(row);
+                const hasQuestionTables = keys.some(k => k.toLowerCase() === 'question_tables');
+                const hasExpectedOutput = keys.some(k => k.toLowerCase() === 'expected_output');
+
+                if (hasQuestionTables || hasExpectedOutput) {
+                    const sqlQuestionData = parseSqlCSVRow(row, division, subdivision, topic);
+                    // Validate required fields for SQL
+                    if (!sqlQuestionData.description || !sqlQuestionData.expectedQuery) {
+                        throw new Error("Missing required fields for SQL Question (question, solution)");
+                    }
+                    const sqlQuestion = sqlQuestionRepo().create(sqlQuestionData);
+                    await sqlQuestionRepo().save(sqlQuestion);
+
+                    // Update stats for SQL
+                    const div = sqlQuestionData.division || 'Uncategorized';
+                    summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+                    summary.typeBreakdown!['SQL'] = (summary.typeBreakdown!['SQL'] || 0) + 1;
+
+                    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`[${rowNumber}/${rows.length}] ✅ SQL QUESTION UPLOADED SUCCESSFULLY`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`📂 DIVISION    : ${sqlQuestionData.division || 'N/A'}`);
+                    console.log(`📁 SUBDIVISION : ${sqlQuestionData.subdivision || 'N/A'}`);
+                    console.log(`🏷️  TOPIC       : ${sqlQuestionData.topic || 'N/A'}`);
+                    console.log(`📝 QUESTION    : ${sqlQuestionData.description?.substring(0, 60)}...`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+                } else {
+                    // Parse and save regular question
+                    const questionData = parseCSVRow(row, division, subdivision, topic);
+                    const question = questionRepo().create(questionData);
+                    await questionRepo().save(question);
+
+                    // Track statistics
+                    if (questionData.pseudocode) {
+                        summary.pseudocodeCount!++;
+                    }
+
+                    const div = questionData.division || 'Uncategorized';
+                    summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+
+                    const type = questionData.type || 'Unknown';
+                    summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
+
+                    // Enhanced Detailed Logging
+                    const divisionLabel = questionData.division || 'N/A';
+                    const subdivisionLabel = questionData.subdivision || 'N/A';
+                    const topicLabel = questionData.topic || 'N/A';
+                    const typeLabel = questionData.type || 'N/A';
+                    const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
+                    const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
+
+                    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`📂 DIVISION    : ${divisionLabel}`);
+                    console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
+                    console.log(`🏷️  TOPIC       : ${topicLabel}`);
+                    console.log(`📝 TYPE        : ${typeLabel}`);
+                    console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
+                    console.log(`🔢 OPTIONS     : ${hasOptions}`);
+                    console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                }
+
+                summary.success++;
+            } catch (error: any) {
+                summary.errors.push({
+                    row: rowNumber,
+                    field: "database",
+                    error: error.message,
+                });
+                summary.failed++;
+
+                // Enhanced Error Logging
+                console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`[${rowNumber}/${rows.length}] ❌ QUESTION UPLOAD FAILED`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`⚠️  ERROR: ${error.message}`);
+                console.log(`📋 ROW DATA: ${JSON.stringify(row, null, 2)}`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+            }
+        }
+
+        // Print Summary (Generic helper could be used, but inlining for consistency with existing code style)
+        console.log(`\n╔════════════════════════════════════════════════════════════╗`);
+        console.log(`║          🎉 EXCEL UPLOAD COMPLETE - SUMMARY 🎉             ║`);
+        console.log(`╚════════════════════════════════════════════════════════════╝\n`);
+        console.log(`📊 OVERALL STATISTICS:`);
+        console.log(`   ├─ Total Questions    : ${summary.total}`);
+        console.log(`   ├─ ✅ Success         : ${summary.success}`);
+        console.log(`   ├─ ❌ Failed          : ${summary.failed}`);
+        console.log(`   └─ 💻 With Pseudocode : ${summary.pseudocodeCount}\n`);
+
+        if (summary.errors.length > 0) {
+            console.log(`❌ ERROR DETAILS:`);
+            summary.errors.forEach(err => {
+                console.log(`   Row ${err.row}: [${err.field}] ${err.error}`);
+            });
+            console.log('');
+        }
+
+        if (Object.keys(summary.divisionBreakdown!).length > 0) {
+            console.log(`📂 DIVISION BREAKDOWN:`);
+            Object.entries(summary.divisionBreakdown!).forEach(([div, count]) => {
+                console.log(`   ├─ ${div.padEnd(20)} : ${count} questions`);
+            });
+            console.log('');
+        }
+
+        if (Object.keys(summary.typeBreakdown!).length > 0) {
+            console.log(`📝 TYPE BREAKDOWN:`);
+            Object.entries(summary.typeBreakdown!).forEach(([type, count]) => {
+                console.log(`   ├─ ${type.padEnd(20)} : ${count} questions`);
+            });
+            console.log('');
+        }
+
+        return summary;
+
+    } catch (error: any) {
+        throw new Error(`Excel processing failed: ${error.message}`);
+    }
 }
 
 // Upload ZIP file (CSV + images)
@@ -447,18 +754,25 @@ export async function uploadZIP(
         const zip = new AdmZip(fileBuffer);
         const zipEntries = zip.getEntries();
 
-        // Find CSV file
+        // Find CSV or Excel file
         const csvEntry = zipEntries.find(
             (entry) =>
                 !entry.isDirectory &&
-                (entry.entryName.endsWith(".csv") || entry.entryName.toLowerCase().includes("question"))
+                (entry.entryName.endsWith(".csv") || entry.entryName.toLowerCase().includes("question") && entry.entryName.endsWith(".csv"))
         );
 
-        if (!csvEntry) {
-            throw new Error("No CSV file found in ZIP");
+        const excelEntry = !csvEntry ? zipEntries.find(
+            (entry) =>
+                !entry.isDirectory &&
+                (entry.entryName.endsWith(".xlsx") || entry.entryName.endsWith(".xls") || entry.entryName.toLowerCase().includes("question"))
+        ) : null;
+
+        if (!csvEntry && !excelEntry) {
+            throw new Error("No CSV or Excel file found in ZIP");
         }
 
-        console.log(`✅ Found CSV: ${csvEntry.entryName}`);
+        const questionsFileEntry = csvEntry || excelEntry;
+        console.log(`✅ Found Questions File: ${questionsFileEntry!.entryName}`);
 
         // Extract images folder
         const imageEntries = zipEntries.filter(
@@ -485,132 +799,180 @@ export async function uploadZIP(
             }
         }
 
-        // Parse CSV
-        const csvBuffer = csvEntry.getData();
-        const rows: any[] = [];
-        const stream = Readable.from(csvBuffer.toString());
+        // Parse File (CSV or Excel)
+        let rows: any[] = [];
 
-        return new Promise((resolve, reject) => {
-            stream
-                .pipe(csvParser())
-                .on("data", (row) => {
-                    rows.push(row);
-                })
-                .on("end", async () => {
-                    console.log(`\n📊 Processing ${rows.length} questions from CSV...\n`);
-                    summary.total = rows.length;
+        if (questionsFileEntry!.entryName.endsWith(".csv")) {
+            // Parse CSV
+            const csvBuffer = questionsFileEntry!.getData();
+            const stream = Readable.from(csvBuffer.toString());
 
-                    for (let i = 0; i < rows.length; i++) {
-                        const row = rows[i];
-                        const rowNumber = i + 1;
+            await new Promise<void>((resolve, reject) => {
+                stream
+                    .pipe(csvParser())
+                    .on("data", (row) => rows.push(row))
+                    .on("end", () => resolve())
+                    .on("error", (err) => reject(err));
+            });
+        } else {
+            // Parse Excel
+            const excelBuffer = questionsFileEntry!.getData();
+            const workbook = XLSX.read(excelBuffer, { type: "buffer" });
+            const sheetName = workbook.SheetNames[0];
+            rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        }
 
-                        // Validate row
-                        const validationErrors = validateCSVRow(row, rowNumber);
-                        if (validationErrors.length > 0) {
-                            summary.errors.push(...validationErrors);
-                            summary.failed++;
-                            console.log(`[${rowNumber}/${rows.length}] ❌ Validation failed`);
-                            continue;
-                        }
+        console.log(`\n📊 Processing ${rows.length} questions from ${questionsFileEntry!.entryName}...\n`);
+        summary.total = rows.length;
 
-                        try {
-                            // Parse question
-                            const questionData = parseCSVRow(row, division, subdivision, topic);
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const rowNumber = i + 1;
 
-                            // Handle question_image column - upload to Supabase if exists
-                            if (row.question_image && imageUrlMap[row.question_image]) {
-                                questionData.image = imageUrlMap[row.question_image];
-                            }
-
-                            // Save question
-                            const question = questionRepo().create(questionData);
-                            await questionRepo().save(question);
-
-                            summary.success++;
-
-                            // Track statistics
-                            if (questionData.pseudocode) {
-                                summary.pseudocodeCount!++;
-                            }
-
-                            const div = questionData.division || 'Uncategorized';
-                            summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
-
-                            const type = questionData.type || 'Unknown';
-                            summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
-
-                            // Enhanced Detailed Logging
-                            const divisionLabel = questionData.division || 'N/A';
-                            const subdivisionLabel = questionData.subdivision || 'N/A';
-                            const topicLabel = questionData.topic || 'N/A';
-                            const typeLabel = questionData.type || 'N/A';
-                            const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
-                            const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
-                            const hasImage = questionData.image ? '✅ YES' : '❌ NO';
-
-                            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-                            console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY (ZIP)`);
-                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-                            console.log(`📂 DIVISION    : ${divisionLabel}`);
-                            console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
-                            console.log(`🏷️  TOPIC       : ${topicLabel}`);
-                            console.log(`📝 TYPE        : ${typeLabel}`);
-                            console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
-                            console.log(`🔢 OPTIONS     : ${hasOptions}`);
-                            console.log(`🖼️  IMAGE       : ${hasImage}`);
-                            console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
-                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-                        } catch (error: any) {
-                            summary.errors.push({
-                                row: rowNumber,
-                                field: "database",
-                                error: error.message,
-                            });
-                            summary.failed++;
-
-                            // Enhanced Error Logging
-                            console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-                            console.log(`[${rowNumber}/${rows.length}] ❌ QUESTION UPLOAD FAILED (ZIP)`);
-                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-                            console.log(`⚠️  ERROR: ${error.message}`);
-                            console.log(`📋 ROW DATA: ${JSON.stringify(row, null, 2)}`);
-                            console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-                        }
-                    }
-
-                    // Enhanced Final Summary
-                    console.log(`\n╔════════════════════════════════════════════════════════════╗`);
-                    console.log(`║           🎉 ZIP UPLOAD COMPLETE - SUMMARY 🎉              ║`);
-                    console.log(`╚════════════════════════════════════════════════════════════╝\n`);
-                    console.log(`📊 OVERALL STATISTICS:`);
-                    console.log(`   ├─ Total Questions    : ${summary.total}`);
-                    console.log(`   ├─ ✅ Success         : ${summary.success}`);
-                    console.log(`   ├─ ❌ Failed          : ${summary.failed}`);
-                    console.log(`   ├─ 💻 With Pseudocode : ${summary.pseudocodeCount}`);
-                    console.log(`   └─ 🖼️  Images Uploaded : ${summary.imagesUploaded}\n`);
-
-                    if (Object.keys(summary.divisionBreakdown!).length > 0) {
-                        console.log(`📂 DIVISION BREAKDOWN:`);
-                        Object.entries(summary.divisionBreakdown!).forEach(([div, count]) => {
-                            console.log(`   ├─ ${div.padEnd(20)} : ${count} questions`);
-                        });
-                        console.log('');
-                    }
-
-                    if (Object.keys(summary.typeBreakdown!).length > 0) {
-                        console.log(`📝 TYPE BREAKDOWN:`);
-                        Object.entries(summary.typeBreakdown!).forEach(([type, count]) => {
-                            console.log(`   ├─ ${type.padEnd(20)} : ${count} questions`);
-                        });
-                        console.log('');
-                    }
-
-                    resolve(summary);
-                })
-                .on("error", (error) => {
-                    reject(error);
+            // Validate row
+            const validationErrors = validateCSVRow(row, rowNumber);
+            if (validationErrors.length > 0) {
+                summary.errors.push(...validationErrors);
+                summary.failed++;
+                console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`[${rowNumber}/${rows.length}] ❌ VALIDATION FAILED (ZIP)`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                validationErrors.forEach(err => {
+                    console.log(`⚠️  ${err.field}: ${err.error}`);
                 });
-        });
+                console.log(`📋 ROW DATA: ${JSON.stringify(row)}`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                continue;
+            }
+
+            try {
+                // Check if it's a SQL question (has question_tables or specific CSV structure)
+                if (row.question_tables || row.expected_output) {
+                    const sqlQuestionData = parseSqlCSVRow(row, division, subdivision, topic);
+                    // Validate required fields for SQL
+                    if (!sqlQuestionData.description || !sqlQuestionData.expectedQuery) {
+                        throw new Error("Missing required fields for SQL Question (question, solution)");
+                    }
+                    const sqlQuestion = sqlQuestionRepo().create(sqlQuestionData);
+                    await sqlQuestionRepo().save(sqlQuestion);
+
+                    // Update stats for SQL
+                    const div = sqlQuestionData.division || 'Uncategorized';
+                    summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+                    summary.typeBreakdown!['SQL'] = (summary.typeBreakdown!['SQL'] || 0) + 1;
+
+                    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`[${rowNumber}/${rows.length}] ✅ SQL QUESTION UPLOADED SUCCESSFULLY (ZIP)`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`📂 DIVISION    : ${sqlQuestionData.division || 'N/A'}`);
+                    console.log(`📁 SUBDIVISION : ${sqlQuestionData.subdivision || 'N/A'}`);
+                    console.log(`🏷️  TOPIC       : ${sqlQuestionData.topic || 'N/A'}`);
+                    console.log(`📝 QUESTION    : ${sqlQuestionData.description?.substring(0, 60)}...`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+                } else {
+                    // Parse regular question
+                    const questionData = parseCSVRow(row, division, subdivision, topic);
+
+                    // Handle question_image column - upload to Supabase if exists
+                    if (row.question_image && imageUrlMap[row.question_image]) {
+                        questionData.image = imageUrlMap[row.question_image];
+                    }
+
+                    // Save question
+                    const question = questionRepo().create(questionData);
+                    await questionRepo().save(question);
+
+                    summary.success++;
+
+                    // Track statistics
+                    if (questionData.pseudocode) {
+                        summary.pseudocodeCount!++;
+                    }
+
+                    const div = questionData.division || 'Uncategorized';
+                    summary.divisionBreakdown![div] = (summary.divisionBreakdown![div] || 0) + 1;
+
+                    const type = questionData.type || 'Unknown';
+                    summary.typeBreakdown![type] = (summary.typeBreakdown![type] || 0) + 1;
+
+                    // Enhanced Detailed Logging
+                    const divisionLabel = questionData.division || 'N/A';
+                    const subdivisionLabel = questionData.subdivision || 'N/A';
+                    const topicLabel = questionData.topic || 'N/A';
+                    const typeLabel = questionData.type || 'N/A';
+                    const hasPseudocode = questionData.pseudocode ? '✅ YES' : '❌ NO';
+                    const hasOptions = questionData.options && questionData.options.length > 0 ? `${questionData.options.length} opts` : 'No opts';
+                    const hasImage = questionData.image ? '✅ YES' : '❌ NO';
+
+                    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`[${rowNumber}/${rows.length}] ✅ QUESTION UPLOADED SUCCESSFULLY (ZIP)`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                    console.log(`📂 DIVISION    : ${divisionLabel}`);
+                    console.log(`📁 SUBDIVISION : ${subdivisionLabel}`);
+                    console.log(`🏷️  TOPIC       : ${topicLabel}`);
+                    console.log(`📝 TYPE        : ${typeLabel}`);
+                    console.log(`💻 PSEUDOCODE  : ${hasPseudocode}`);
+                    console.log(`🔢 OPTIONS     : ${hasOptions}`);
+                    console.log(`🖼️  IMAGE       : ${hasImage}`);
+                    console.log(`❓ QUESTION    : ${questionData.text?.substring(0, 60)}...`);
+                    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+                }
+            } catch (error: any) {
+                summary.errors.push({
+                    row: rowNumber,
+                    field: "database",
+                    error: error.message,
+                });
+                summary.failed++;
+
+                // Enhanced Error Logging
+                console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`[${rowNumber}/${rows.length}] ❌ QUESTION UPLOAD FAILED (ZIP)`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`⚠️  ERROR: ${error.message}`);
+                console.log(`📋 ROW DATA: ${JSON.stringify(row, null, 2)}`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+            }
+        }
+
+        // Enhanced Final Summary
+        console.log(`\n╔════════════════════════════════════════════════════════════╗`);
+        console.log(`║           🎉 ZIP UPLOAD COMPLETE - SUMMARY 🎉              ║`);
+        console.log(`╚════════════════════════════════════════════════════════════╝\n`);
+        console.log(`📊 OVERALL STATISTICS:`);
+        console.log(`   ├─ Total Questions    : ${summary.total}`);
+        console.log(`   ├─ ✅ Success         : ${summary.success}`);
+        console.log(`   ├─ ❌ Failed          : ${summary.failed}`);
+        console.log(`   ├─ 💻 With Pseudocode : ${summary.pseudocodeCount}`);
+        console.log(`   └─ 🖼️  Images Uploaded : ${summary.imagesUploaded}\n`);
+
+        if (summary.errors.length > 0) {
+            console.log(`❌ ERROR DETAILS:`);
+            summary.errors.forEach(err => {
+                console.log(`   Row ${err.row}: [${err.field}] ${err.error}`);
+            });
+            console.log('');
+        }
+
+        if (Object.keys(summary.divisionBreakdown!).length > 0) {
+            console.log(`📂 DIVISION BREAKDOWN:`);
+            Object.entries(summary.divisionBreakdown!).forEach(([div, count]) => {
+                console.log(`   ├─ ${div.padEnd(20)} : ${count} questions`);
+            });
+            console.log('');
+        }
+
+        if (Object.keys(summary.typeBreakdown!).length > 0) {
+            console.log(`📝 TYPE BREAKDOWN:`);
+            Object.entries(summary.typeBreakdown!).forEach(([type, count]) => {
+                console.log(`   ├─ ${type.padEnd(20)} : ${count} questions`);
+            });
+            console.log('');
+        }
+
+        return summary;
+
     } catch (error: any) {
         throw new Error(`ZIP processing failed: ${error.message}`);
     }

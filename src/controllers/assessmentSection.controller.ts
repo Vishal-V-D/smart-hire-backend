@@ -117,3 +117,31 @@ export const listQuestions = async (req: Request, res: Response) => {
         });
     }
 };
+
+// ✅ Add SQL Questions to Section
+export const addSqlQuestions = async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { questionIds } = req.body;
+
+        if (!Array.isArray(questionIds)) {
+            return res.status(400).json({
+                error: {
+                    code: "VALIDATION_ERROR",
+                    message: "questionIds must be an array"
+                }
+            });
+        }
+
+        const result = await sectionService.addSqlQuestions(req.params.sectionId, questionIds, user.id);
+        res.status(200).json(result);
+    } catch (err: any) {
+        console.error("❌ [ADD_SQL_QUESTIONS] Error:", err);
+        res.status(err.status || 500).json({
+            error: {
+                code: err.status === 400 ? "VALIDATION_ERROR" : "SERVER_ERROR",
+                message: err.message || "Server error"
+            }
+        });
+    }
+};

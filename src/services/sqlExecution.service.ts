@@ -9,9 +9,11 @@ const JUDGE0_POLL_INTERVAL = parseInt(process.env.JUDGE0_POLL_INTERVAL || "1000"
 const sqlQuestionRepo = () => AppDataSource.getRepository(SqlQuestion);
 
 // Judge0 Language IDs for SQL
+// Note: Judge0 CE only supports SQLite (ID 82) for SQL execution
+// Both MySQL and PostgreSQL queries will run on SQLite engine
 const SQL_LANGUAGE_IDS: Record<SqlDialect, number> = {
-    [SqlDialect.MYSQL]: 82,        // MySQL 8.0
-    [SqlDialect.POSTGRESQL]: 84,   // PostgreSQL 13.0
+    [SqlDialect.MYSQL]: 82,        // SQL (SQLite 3.27.2)
+    [SqlDialect.POSTGRESQL]: 82,   // SQL (SQLite 3.27.2)
 };
 
 interface SqlExecutionResult {
@@ -27,35 +29,58 @@ interface SqlExecutionResult {
 }
 
 /**
- * Submit SQL query to Judge0
+ * Submit SQL query to Judge0 with retry logic
  */
 const submitToJudge0 = async (
     sourceCode: string,
     languageId: number,
-    stdin?: string
+    stdin?: string,
+    retries = 3
 ): Promise<string> => {
-    try {
-        console.log(`   📡 [JUDGE0] Submitting SQL query (Language ID: ${languageId})...`);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            console.log(`   📡 [JUDGE0] Submitting SQL query (Language ID: ${languageId})${attempt > 1 ? ` - Attempt ${attempt}/${retries}` : ''}...`);
 
-        const response = await axios.post(
-            `${JUDGE0_API_URL}/submissions?base64_encoded=true`,
-            {
-                source_code: Buffer.from(sourceCode).toString("base64"),
-                language_id: languageId,
-                stdin: stdin ? Buffer.from(stdin).toString("base64") : undefined,
+            const response = await axios.post(
+                `${JUDGE0_API_URL}/submissions?base64_encoded=true`,
+                {
+                    source_code: Buffer.from(sourceCode).toString("base64"),
+                    language_id: languageId,
+                    stdin: stdin ? Buffer.from(stdin).toString("base64") : undefined,
+                },
+                {
+                    timeout: 10000, // 10 second timeout
+                }
+            );
+
+            const token = response.data.token;
+            console.log(`   📤 [JUDGE0] Submission token: ${token}`);
+            return token;
+        } catch (error: any) {
+            const isLastAttempt = attempt === retries;
+            const isNetworkError = error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED';
+
+            if (isNetworkError && !isLastAttempt) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+                console.warn(`   ⚠️ [JUDGE0] Connection error (${error.code}), retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
             }
-        );
 
-        const token = response.data.token;
-        console.log(`   📤 [JUDGE0] Submission token: ${token}`);
-        return token;
-    } catch (error: any) {
-        console.error(`   ❌ [JUDGE0] Submission failed:`, error.message);
-        throw {
-            status: error.response?.status || 500,
-            message: "Judge0 submission failed",
-        };
+            console.error(`   ❌ [JUDGE0] Submission failed:`, error.message);
+            throw {
+                status: error.response?.status || 500,
+                message: isNetworkError
+                    ? "Judge0 connection failed. Please try again."
+                    : "Judge0 submission failed",
+            };
+        }
     }
+
+    throw {
+        status: 500,
+        message: "Judge0 submission failed after multiple retries",
+    };
 };
 
 /**
@@ -163,6 +188,71 @@ const buildSqlScript = (
 };
 
 /**
+ * Helper to infer SQL type from value
+ */
+const inferSqlType = (value: any): string => {
+    if (typeof value === 'number') {
+        return Number.isInteger(value) ? 'INT' : 'DECIMAL(10,2)';
+    }
+    if (typeof value === 'boolean') return 'BOOLEAN';
+    // Simple date check
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return 'DATETIME';
+    return 'TEXT';
+};
+
+/**
+ * Generate CREATE TABLE and INSERT statements from inputTables JSON
+ */
+const generateSqlFromInputTables = (inputTables: any, dialect: SqlDialect): string => {
+    if (!inputTables || !Array.isArray(inputTables)) return "";
+
+    let script = "";
+
+    for (const table of inputTables) {
+        if (!table.name || !table.columns) continue;
+
+        // 1. CREATE TABLE
+        script += `CREATE TABLE ${table.name} (\n`;
+
+        const columnDefs = table.columns.map((col: string) => {
+            // Try to infer type from first row of data
+            let type = "TEXT";
+            if (table.rows && table.rows.length > 0) {
+                const sampleVal = table.rows[0][col];
+                if (sampleVal !== undefined && sampleVal !== null) {
+                    type = inferSqlType(sampleVal);
+                }
+            }
+            return `    ${col} ${type}`;
+        });
+
+        script += columnDefs.join(",\n");
+        script += `\n);\n\n`;
+
+        // 2. INSERT DATA
+        if (table.rows && table.rows.length > 0) {
+            script += `INSERT INTO ${table.name} (${table.columns.join(", ")}) VALUES\n`;
+
+            const valueRows = table.rows.map((row: any) => {
+                const values = table.columns.map((col: string) => {
+                    const val = row[col];
+                    if (val === null) return "NULL";
+                    if (typeof val === 'number') return val;
+                    if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+                    // Escape single quotes for SQL
+                    return `'${val.toString().replace(/'/g, "''")}'`;
+                });
+                return `(${values.join(", ")})`;
+            });
+
+            script += valueRows.join(",\n") + ";\n\n";
+        }
+    }
+
+    return script;
+};
+
+/**
  * Run SQL query (for testing/practice)
  */
 export const runSqlQuery = async (
@@ -186,9 +276,22 @@ export const runSqlQuery = async (
         console.log(`   Query: ${userQuery.substring(0, 100)}...`);
 
         // Build complete SQL script
+        // Check if we need to generate SQL from inputTables (if schemaSetup is placeholder or inputTables exists)
+        let schemaSetup = question.schemaSetup;
+        let sampleData = question.sampleData;
+
+        // If inputTables exists, use it to generate the schema and data
+        if (question.inputTables) {
+            console.log(`   🛠️  Generating SQL Schema from inputTables...`);
+            const generatedSql = generateSqlFromInputTables(question.inputTables, question.dialect);
+            schemaSetup = generatedSql; // Contains both schema and data
+            sampleData = ""; // Data is included in generatedSql
+        }
+
+        // Build complete SQL script
         const sqlScript = buildSqlScript(
-            question.schemaSetup,
-            question.sampleData,
+            schemaSetup,
+            sampleData,
             userQuery,
             question.dialect
         );
@@ -264,10 +367,22 @@ export const submitSqlQuery = async (
         console.log(`   Dialect: ${question.dialect}`);
         console.log(`   Query: ${userQuery.substring(0, 100)}...`);
 
+        // Check if we need to generate SQL from inputTables (if schemaSetup is placeholder or inputTables exists)
+        let schemaSetup = question.schemaSetup;
+        let sampleData = question.sampleData;
+
+        // If inputTables exists, use it to generate the schema and data
+        if (question.inputTables) {
+            console.log(`   🛠️  Generating SQL Schema from inputTables...`);
+            const generatedSql = generateSqlFromInputTables(question.inputTables, question.dialect);
+            schemaSetup = generatedSql; // Contains both schema and data
+            sampleData = ""; // Data is included in generatedSql
+        }
+
         // Build complete SQL script
         const sqlScript = buildSqlScript(
-            question.schemaSetup,
-            question.sampleData,
+            schemaSetup,
+            sampleData,
             userQuery,
             question.dialect
         );
@@ -344,7 +459,9 @@ export const getAllSqlQuestions = async (filters?: {
     difficulty?: string;
     topic?: string;
     subdivision?: string;
+    division?: string;
 }) => {
+    console.log("🔍 [GET_ALL_SQL] Filters:", filters);
     const query = sqlQuestionRepo().createQueryBuilder("sql_question");
 
     if (filters?.dialect) {
@@ -360,14 +477,119 @@ export const getAllSqlQuestions = async (filters?: {
     }
 
     if (filters?.topic) {
-        query.andWhere("sql_question.topic = :topic", { topic: filters.topic });
+        query.andWhere("sql_question.topic ILIKE :topic", { topic: `%${filters.topic}%` });
     }
 
     if (filters?.subdivision) {
-        query.andWhere("sql_question.subdivision = :subdivision", {
-            subdivision: filters.subdivision,
+        query.andWhere("sql_question.subdivision ILIKE :subdivision", {
+            subdivision: `%${filters.subdivision}%`,
         });
     }
 
-    return await query.getMany();
+    if (filters?.division) {
+        query.andWhere("sql_question.division ILIKE :division", {
+            division: `%${filters.division}%`,
+        });
+    }
+
+    const result = await query.getMany();
+    console.log(`✅ [GET_ALL_SQL] Found ${result.length} questions`);
+
+    if (result.length === 0 && Object.keys(filters || {}).length > 0) {
+        // Debug: Show what's actually in the database
+        const allQuestions = await sqlQuestionRepo().find({ take: 3 });
+        console.log(`🔍 [DEBUG] Sample questions in DB:`);
+        allQuestions.forEach(q => {
+            console.log(`   - Division: "${q.division}", Subdivision: "${q.subdivision}", Topic: "${q.topic}"`);
+        });
+    }
+
+    console.log(`📊 [GET_ALL_SQL] SQL Query:`, query.getSql());
+    console.log(`📊 [GET_ALL_SQL] Parameters:`, query.getParameters());
+    return result;
 };
+
+/**
+ * Get unique filter options for SQL questions
+ */
+export const getSqlFilterOptions = async (): Promise<{
+    dialects: string[];
+    difficulties: string[];
+    topics: string[];
+    subdivisions: string[];
+}> => {
+    const qb = sqlQuestionRepo().createQueryBuilder("sql_question");
+
+    // Get distinct values
+    const dialects = await qb
+        .select("DISTINCT(sql_question.dialect)", "dialect")
+        .where("sql_question.dialect IS NOT NULL")
+        .getRawMany();
+
+
+    const difficulties = await qb
+        .select("DISTINCT(sql_question.difficulty)", "difficulty")
+        .where("sql_question.difficulty IS NOT NULL")
+        .getRawMany();
+
+    const topics = await qb
+        .select("DISTINCT(sql_question.topic)", "topic")
+        .where("sql_question.topic IS NOT NULL")
+        .getRawMany();
+
+    const subdivisions = await qb
+        .select("DISTINCT(sql_question.subdivision)", "subdivision")
+        .where("sql_question.subdivision IS NOT NULL")
+        .getRawMany();
+
+    return {
+        dialects: dialects.map(d => d.dialect).sort(),
+        difficulties: difficulties.map(d => d.difficulty).sort(),
+        topics: topics.map(t => t.topic).sort(),
+        subdivisions: subdivisions.map(s => s.subdivision).sort(),
+    };
+};
+
+/**
+ * Update SQL question
+ */
+export const updateSqlQuestion = async (questionId: string, updateData: Partial<any>) => {
+    console.log(`🔄 [UPDATE_SQL] Updating question: ${questionId}`);
+
+    const question = await sqlQuestionRepo().findOne({
+        where: { id: questionId },
+    });
+
+    if (!question) {
+        throw { status: 404, message: "SQL question not found" };
+    }
+
+    // Update fields
+    Object.assign(question, updateData);
+
+    const updatedQuestion = await sqlQuestionRepo().save(question);
+    console.log(`✅ [UPDATE_SQL] Question updated successfully`);
+
+    return updatedQuestion;
+};
+
+/**
+ * Delete SQL question
+ */
+export const deleteSqlQuestion = async (questionId: string) => {
+    console.log(`🗑️ [DELETE_SQL] Deleting question: ${questionId}`);
+
+    const question = await sqlQuestionRepo().findOne({
+        where: { id: questionId },
+    });
+
+    if (!question) {
+        throw { status: 404, message: "SQL question not found" };
+    }
+
+    await sqlQuestionRepo().remove(question);
+    console.log(`✅ [DELETE_SQL] Question deleted successfully`);
+
+    return { success: true, message: "SQL question deleted successfully" };
+};
+

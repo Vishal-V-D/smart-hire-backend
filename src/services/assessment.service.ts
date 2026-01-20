@@ -138,6 +138,7 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
         let totalQuestions = 0;
         let totalMarks = 0;
         let sectionCount = 0;
+        let totalSqlQuestions = 0; // Track SQL questions separately
 
         // ⭐ Track section-wise data for console table and for timer logic
         const sectionData_table: Array<{
@@ -319,6 +320,96 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
                     }
                 }
 
+                // ⭐ HANDLE CODING PROBLEMS (if sent as 'problems' array instead of mixed in 'questions')
+                if (sectionData.problems && Array.isArray(sectionData.problems) && sectionData.problems.length > 0) {
+                    console.log(`  [CREATE_PROBLEMS] Linking ${sectionData.problems.length} coding problems...`);
+
+                    for (const problemData of sectionData.problems) {
+                        // Expect problemId from frontend
+                        const problemId = problemData.problemId || problemData.id || problemData.problem?.id;
+
+                        if (!problemId) {
+                            console.error(`    ❌ [CREATE] Coding problem missing 'problemId' or 'id'. Cannot link.`);
+                            throw { status: 400, message: "Coding problems must include 'problemId' or 'id' to link to an existing problem." };
+                        }
+
+                        console.log(`    ⚠️ [CREATE] Detected Coding Problem. Linking to existing Problem ID: ${problemId}`);
+
+                        const existingProblem = await queryRunner.manager.findOne(Problem, {
+                            where: { id: problemId }
+                        });
+
+                        if (!existingProblem) {
+                            throw { status: 404, message: `Problem with ID ${problemId} not found.` };
+                        }
+
+                        console.log(`    ✅ Found existing Problem: "${existingProblem.title}" (ID: ${existingProblem.id})`);
+
+                        const testCaseConfig = problemData.testCaseConfig || null;
+
+                        const sectionProblem = queryRunner.manager.create(SectionProblem, {
+                            section: section,
+                            problem: existingProblem,
+                            marks: problemData.marks || sectionData.marksPerQuestion || 10,
+                            order: problemData.orderIndex !== undefined ? problemData.orderIndex : totalQuestions,
+                            testCaseConfig: testCaseConfig
+                        });
+
+                        const savedSectionProblem = await queryRunner.manager.save(sectionProblem) as unknown as SectionProblem;
+                        console.log(`    🔗 Linked Problem to Section via SectionProblem: ${savedSectionProblem.id}`);
+
+                        totalQuestions++;
+                        sectionQuestionCount++;
+                        totalMarks += savedSectionProblem.marks || 0;
+                        sectionTotalMarks += savedSectionProblem.marks || 0;
+                    }
+                }
+
+                // ⭐ HANDLE SQL QUESTIONS - LINK TO EXISTING SQL QUESTIONS
+                if (sectionData.sqlQuestions && Array.isArray(sectionData.sqlQuestions) && sectionData.sqlQuestions.length > 0) {
+                    console.log(`  [CREATE_SQL_QUESTIONS] Linking ${sectionData.sqlQuestions.length} SQL questions...`);
+
+                    const { SqlQuestion } = await import("../entities/SqlQuestion.entity");
+                    const sqlQuestionRepo = AppDataSource.getRepository(SqlQuestion);
+
+                    for (const sqlQuestionData of sectionData.sqlQuestions) {
+                        // Expect sqlQuestionId from frontend - this is the ID of the existing SqlQuestion entity
+                        const sqlQuestionId = sqlQuestionData.sqlQuestionId || sqlQuestionData.id;
+
+                        if (!sqlQuestionId) {
+                            console.error(`    ❌ [CREATE] SQL question missing 'sqlQuestionId' or 'id'. Cannot link.`);
+                            throw { status: 400, message: "SQL questions must include 'sqlQuestionId' or 'id' to link to an existing SQL question." };
+                        }
+
+                        console.log(`    ⚠️ [CREATE] Detected SQL question. Linking to existing SQL Question ID: ${sqlQuestionId}`);
+
+                        // Fetch the existing SQL question to verify it exists
+                        const existingSqlQuestion = await queryRunner.manager.findOne(SqlQuestion, {
+                            where: { id: sqlQuestionId }
+                        });
+
+                        if (!existingSqlQuestion) {
+                            console.error(`    ❌ [CREATE] SQL Question not found with ID: ${sqlQuestionId}`);
+                            throw { status: 404, message: `SQL Question with ID ${sqlQuestionId} not found.` };
+                        }
+
+                        console.log(`    ✅ Found existing SQL Question: "${existingSqlQuestion.title}" (ID: ${existingSqlQuestion.id})`);
+
+                        // Link SQL question to section by updating its section reference
+                        existingSqlQuestion.section = section;
+                        existingSqlQuestion.marks = sqlQuestionData.marks || sectionData.marksPerQuestion || 5;
+
+                        await queryRunner.manager.save(existingSqlQuestion);
+                        console.log(`    🔗 Linked SQL Question to Section: ${existingSqlQuestion.id}`);
+
+                        totalQuestions++;
+                        sectionQuestionCount++;
+                        totalMarks += existingSqlQuestion.marks || 0;
+                        sectionTotalMarks += existingSqlQuestion.marks || 0;
+                        totalSqlQuestions++; // Increment SQL question counter
+                    }
+                }
+
 
                 // ⭐ Add section data to table with CORRECT calculation
                 // Total = Number of questions × Marks per question
@@ -378,6 +469,9 @@ export const createAssessment = async (data: any, organizerId: string): Promise<
         console.log(`\n📈 OVERALL SUMMARY:`);
         console.log(`   ✅ Total Sections: ${sectionCount}`);
         console.log(`   ✅ Total Questions: ${totalQuestions}`);
+        if (totalSqlQuestions > 0) {
+            console.log(`   🗄️  SQL Questions: ${totalSqlQuestions}`);
+        }
         console.log(`   ✅ Total Marks: ${totalMarks}`);
         console.log(`   ✅ Total Time: ${totalTime} minutes`);
         console.log(`   ✅ Status: ${assessment.status}`);
@@ -441,7 +535,8 @@ export const getAssessmentById = async (id: string, organizerId: string, skipOwn
             "sections",
             "sections.questions",
             "sections.problems",
-            "sections.problems.problem"
+            "sections.problems.problem",
+            "sections.sqlQuestions"  // ✅ Load SQL questions
         ],
     });
 
@@ -524,6 +619,22 @@ export const getAssessmentById = async (id: string, organizerId: string, skipOwn
         } else {
             console.log(`         (No coding problems linked)`);
         }
+
+        // 3. Log SQL Questions
+        const sqlQuestions = sec.sqlQuestions || [];
+        console.log(`      - SQL Questions: ${sqlQuestions.length}`);
+
+        if (sqlQuestions.length > 0) {
+            sqlQuestions.forEach((sqlQ, sqlIdx) => {
+                console.log(`         🗄️  [SQL${sqlIdx + 1}] Title: "${sqlQ.title || 'Unknown'}"`);
+                console.log(`             ID: ${sqlQ.id}`);
+                console.log(`             Marks: ${sqlQ.marks || 'N/A'}`);
+                console.log(`             Difficulty: ${sqlQ.difficulty}`);
+                console.log(`             -----------------------`);
+            });
+        } else {
+            console.log(`         (No SQL questions linked)`);
+        }
     });
     console.log(`--------------------------------------------------\n`);
 
@@ -546,6 +657,14 @@ export const getAssessmentById = async (id: string, organizerId: string, skipOwn
                     console.log(`           ⚙️ Config: ALL test cases`);
                 }
                 console.log(`         → problem.description: ${sp.problem?.description?.substring(0, 50)}...`);
+            });
+        }
+        if (sec.sqlQuestions && sec.sqlQuestions.length > 0) {
+            console.log(`      sqlQuestions: ${sec.sqlQuestions.length}`);
+            sec.sqlQuestions.forEach(sqlQ => {
+                console.log(`         → sqlQuestion.id: ${sqlQ.id}`);
+                console.log(`         → sqlQuestion.title: ${sqlQ.title}`);
+                console.log(`         → sqlQuestion.difficulty: ${sqlQ.difficulty}`);
             });
         }
     });

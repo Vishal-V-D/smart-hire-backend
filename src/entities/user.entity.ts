@@ -32,7 +32,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ unique: true })
+  @Column() // ✅ Removed unique constraint
   username: string;
 
   @Column({ nullable: true })

@@ -2,7 +2,7 @@ import { Router } from "express";
 import * as questionUploadCtrl from "../controllers/questionUpload.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { authorize } from "../middleware/role.middleware";
-import { uploadCSV, uploadZIP } from "../middleware/upload.middleware";
+import { uploadCSV, uploadZIP, uploadExcel } from "../middleware/upload.middleware";
 
 const router = Router();
 
@@ -29,7 +29,21 @@ router.post(
     authenticate,
     authorize("ORGANIZER"),
     uploadZIP,
+    uploadZIP,
     questionUploadCtrl.uploadQuestionsZIP
+);
+
+/**
+ * @route   POST /api/question-bank/upload/excel
+ * @desc    Upload questions via Excel file
+ * @access  Organizer
+ */
+router.post(
+    "/upload/excel",
+    authenticate,
+    authorize("ORGANIZER"),
+    uploadExcel,
+    questionUploadCtrl.uploadQuestionsExcel
 );
 
 export default router;

@@ -30,7 +30,8 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.27",
-    "winston": "^3.18.3"
+    "winston": "^3.18.3",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",

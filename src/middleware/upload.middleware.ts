@@ -34,9 +34,21 @@ export const uploadProblemImages = upload.fields([
 export const uploadCSV = multer({
     storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'text/csv' || path.extname(file.originalname).toLowerCase() === '.csv') {
+        const allowedMimes = [
+            'text/csv',
+            'text/x-csv',
+            'application/vnd.ms-excel',
+            'application/csv',
+            'application/x-csv',
+            'text/comma-separated-values',
+            'text/x-comma-separated-values',
+            'text/plain'
+        ];
+
+        if (allowedMimes.includes(file.mimetype) || path.extname(file.originalname).toLowerCase() === '.csv') {
             cb(null, true);
         } else {
+            console.warn(`⚠️ Blocked file upload: Mime=${file.mimetype}, Ext=${path.extname(file.originalname)}`);
             cb(new Error('Only CSV files are allowed'));
         }
     },
@@ -56,4 +68,23 @@ export const uploadZIP = multer({
         }
     },
     limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+}).single('file');
+
+// Excel upload configuration (10MB max)
+export const uploadExcel = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (
+            file.mimetype === 'application/vnd.ms-excel' ||
+            file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+            ext === '.xls' ||
+            ext === '.xlsx'
+        ) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only Excel files (XLS, XLSX) are allowed'));
+        }
+    },
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 }).single('file');

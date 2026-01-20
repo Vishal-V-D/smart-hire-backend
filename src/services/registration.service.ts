@@ -55,9 +55,10 @@ export const submitRegistration = async (data: {
 
     if (!user) {
         console.log(`   Creating new user...`);
+
         user = userRepo().create({
             email: data.email.toLowerCase(),
-            username: data.fullName,
+            username: data.fullName, // ✅ Use name as-is
             role: UserRole.CONTESTANT,
             isVerified: true, // Auto-verify since OTP passed
             // No password needed for OTP-based access

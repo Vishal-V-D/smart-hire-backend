@@ -59,7 +59,8 @@ export const getAssessmentForContestant = async (assessmentId: string, userId: s
             "sections",
             "sections.questions",
             "sections.problems",
-            "sections.problems.problem" // Load the actual coding problem details
+            "sections.problems.problem", // Load the actual coding problem details
+            "sections.sqlQuestions" // ✅ Load SQL questions
         ],
     });
 
@@ -87,10 +88,29 @@ export const getAssessmentForContestant = async (assessmentId: string, userId: s
 
     if (assessment.sections?.length > 0) {
         const s = assessment.sections[0];
-        console.log(`   🔎 Section 1 Preview: ${s.questions?.length} questions, ${s.problems?.length} coding problems`);
+        console.log(`   🔎 Section 1 Preview: ${s.questions?.length} questions, ${s.problems?.length} coding problems, ${s.sqlQuestions?.length || 0} SQL questions`);
         if (s.problems?.length > 0) {
             console.log(`      Example Problem ID: ${s.problems[0].problem?.id}`);
             console.log(`      Example Problem Title: ${s.problems[0].problem?.title}`);
+        }
+
+        // 📊 Print SQL Questions Summary Table for all sections
+        const allSqlQuestions = assessment.sections.flatMap(section => section.sqlQuestions || []);
+        if (allSqlQuestions.length > 0) {
+            const sqlTable = allSqlQuestions.map((sqlQ, idx) => ({
+                '#': idx + 1,
+                'Title': sqlQ.title?.substring(0, 45) + '...',
+                'Difficulty': sqlQ.difficulty,
+                'Marks': sqlQ.marks || 'N/A',
+                'Time': sqlQ.timeLimit ? `${sqlQ.timeLimit}m` : 'N/A',
+                'Topic': sqlQ.topic?.substring(0, 20) || 'N/A'
+            }));
+
+            console.log(`\n🗄️  SQL QUESTIONS IN THIS ASSESSMENT:`);
+            console.table(sqlTable);
+            console.log(`   📊 Total SQL Questions: ${allSqlQuestions.length}`);
+            console.log(`   💯 Total Marks: ${allSqlQuestions.reduce((sum, q) => sum + (q.marks || 0), 0)}`);
+            console.log(`   ⏱️  Total Time: ${allSqlQuestions.reduce((sum, q) => sum + (q.timeLimit || 0), 0)} minutes\n`);
         }
     }
 
@@ -138,7 +158,7 @@ export const getQuestionsForSection = async (
 
     const section = await sectionRepo().findOne({
         where: { id: sectionId },
-        relations: ["questions", "problems", "problems.problem"],
+        relations: ["questions", "problems", "problems.problem", "sqlQuestions"],
     });
 
     if (!section) {
@@ -290,8 +310,35 @@ export const getQuestionsForSection = async (
     }
     console.log(`--------------------------------------------------\n`);
 
+    // Get SQL questions (sanitize - remove expected answers)
+    const sqlQuestions = section.sqlQuestions?.map((sqlQ) => {
+        const { expectedQuery, ...safeSqlData } = sqlQ as any;
+        return safeSqlData;
+    }) || [];
+
+    console.log(`   Returning ${sqlQuestions.length} SQL questions`);
+
+    // 📊 Print SQL Questions Summary Table
+    if (sqlQuestions.length > 0) {
+        const sqlTable = sqlQuestions.map((sqlQ, idx) => ({
+            '#': idx + 1,
+            'Title': sqlQ.title?.substring(0, 50) + '...',
+            'Difficulty': sqlQ.difficulty,
+            'Marks': sqlQ.marks || 'N/A',
+            'Time Limit': sqlQ.timeLimit ? `${sqlQ.timeLimit}m` : 'N/A',
+            'Topic': sqlQ.topic || 'N/A'
+        }));
+
+        console.log(`\n🗄️  SQL QUESTIONS SUMMARY:`);
+        console.table(sqlTable);
+        console.log(`   Total SQL Questions: ${sqlQuestions.length}`);
+        console.log(`   Total Marks: ${sqlQuestions.reduce((sum, q) => sum + (q.marks || 0), 0)}`);
+        console.log(`   Total Time: ${sqlQuestions.reduce((sum, q) => sum + (q.timeLimit || 0), 0)} minutes\n`);
+    }
+
     return {
         questions: validQuestions,
         problems,
+        sqlQuestions, // ✅ Add SQL questions to response
     };
 };

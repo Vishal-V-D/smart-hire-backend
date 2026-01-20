@@ -1,10 +1,13 @@
 import { AppDataSource } from "../config/db";
 import { Assessment, AssessmentStatus } from "../entities/Assessment.entity";
 import { AssessmentSection, SectionDifficulty, SectionType, ThemeColor } from "../entities/AssessmentSection.entity";
+import { SqlQuestion } from "../entities/SqlQuestion.entity";
 import { recalculateTotals } from "./assessment.service";
+import { In } from "typeorm";
 
 const repo = () => AppDataSource.getRepository(AssessmentSection);
 const assessmentRepo = () => AppDataSource.getRepository(Assessment);
+const sqlQuestionRepo = () => AppDataSource.getRepository(SqlQuestion);
 
 // ✅ Verify assessment ownership
 const verifyAssessmentOwnership = async (assessmentId: string, organizerId: string): Promise<Assessment> => {
@@ -186,4 +189,52 @@ export const reorderSections = async (
   }
 
   return { message: "Sections reordered successfully" };
+};
+
+// ✅ Add SQL questions to section
+export const addSqlQuestions = async (
+  sectionId: string,
+  questionIds: string[],
+  organizerId: string
+): Promise<{ added: number; message: string }> => {
+  console.log(`🔍 [ADD_SQL_QUESTIONS] Looking for section: ${sectionId}, User: ${organizerId}`);
+  const { section, assessment } = await verifySectionOwnership(sectionId, organizerId);
+
+  // Only draft assessments can have questions added
+  if (assessment.status !== AssessmentStatus.DRAFT) {
+    throw { status: 409, message: "Can only add questions to draft assessments" };
+  }
+
+  // Verify section type
+  if (section.type !== SectionType.SQL) {
+    throw { status: 400, message: "Can only add SQL questions to an SQL section" };
+  }
+
+  if (!questionIds || questionIds.length === 0) {
+    throw { status: 400, message: "No question IDs provided" };
+  }
+
+  // Find questions
+  const questions = await sqlQuestionRepo().findBy({
+    id: In(questionIds),
+  });
+
+  if (questions.length === 0) {
+    throw { status: 404, message: "No matching SQL questions found" };
+  }
+
+  // Update section for these questions
+  // We use save to trigger listeners if any (though plain update is more efficient, save handles relations better usually)
+  // For bulk updates, pure SQL or QueryBuilder is better.
+
+  await sqlQuestionRepo()
+    .createQueryBuilder()
+    .update(SqlQuestion)
+    .set({ section: section })
+    .whereInIds(questions.map(q => q.id))
+    .execute();
+
+  await recalculateTotals(assessment.id);
+
+  return { added: questions.length, message: `Successfully added ${questions.length} SQL questions to section` };
 };
