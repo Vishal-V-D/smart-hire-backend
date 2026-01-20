@@ -222,7 +222,7 @@ export const getSqlQuestionById = async (req: Request, res: Response) => {
  */
 export const getSqlQuestions = async (req: Request, res: Response) => {
     try {
-        const { dialect, difficulty, topic, subdivision, division } = req.query;
+        const { dialect, difficulty, topic, subdivision, division, page, limit } = req.query;
 
         const filters: any = {};
         if (dialect) filters.dialect = dialect as SqlDialect;
@@ -231,12 +231,16 @@ export const getSqlQuestions = async (req: Request, res: Response) => {
         if (subdivision) filters.subdivision = subdivision as string;
         if (division) filters.division = division as string;
 
+        // Add pagination params
+        filters.page = page ? parseInt(page as string) : 1;
+        filters.limit = limit ? parseInt(limit as string) : 50;
+
         console.log(`🔍 [GET_SQL_QUESTIONS] Received filters:`, filters);
 
-        const questions = await getAllSqlQuestions(filters);
+        const result = await getAllSqlQuestions(filters);
 
         // Remove expected query and result from response
-        const sanitizedQuestions = questions.map((q) => {
+        const sanitizedQuestions = result.questions.map((q) => {
             const { expectedQuery, expectedResult, ...rest } = q;
             return rest;
         });
@@ -245,8 +249,8 @@ export const getSqlQuestions = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             success: true,
-            count: sanitizedQuestions.length,
             questions: sanitizedQuestions,
+            pagination: result.pagination
         });
     } catch (error: any) {
         console.error(`❌ Get SQL Questions Error: ${error.message}`);

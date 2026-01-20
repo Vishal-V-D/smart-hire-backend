@@ -460,6 +460,8 @@ export const getAllSqlQuestions = async (filters?: {
     topic?: string;
     subdivision?: string;
     division?: string;
+    page?: number;
+    limit?: number;
 }) => {
     console.log("🔍 [GET_ALL_SQL] Filters:", filters);
     const query = sqlQuestionRepo().createQueryBuilder("sql_question");
@@ -492,21 +494,26 @@ export const getAllSqlQuestions = async (filters?: {
         });
     }
 
-    const result = await query.getMany();
-    console.log(`✅ [GET_ALL_SQL] Found ${result.length} questions`);
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 50;
+    const skip = (page - 1) * limit;
 
-    if (result.length === 0 && Object.keys(filters || {}).length > 0) {
-        // Debug: Show what's actually in the database
-        const allQuestions = await sqlQuestionRepo().find({ take: 3 });
-        console.log(`🔍 [DEBUG] Sample questions in DB:`);
-        allQuestions.forEach(q => {
-            console.log(`   - Division: "${q.division}", Subdivision: "${q.subdivision}", Topic: "${q.topic}"`);
-        });
-    }
+    const [questions, total] = await query
+        .skip(skip)
+        .take(limit)
+        .getManyAndCount();
 
-    console.log(`📊 [GET_ALL_SQL] SQL Query:`, query.getSql());
-    console.log(`📊 [GET_ALL_SQL] Parameters:`, query.getParameters());
-    return result;
+    console.log(`✅ [GET_ALL_SQL] Found ${questions.length} questions (Total: ${total})`);
+
+    return {
+        questions,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit)
+        }
+    };
 };
 
 /**

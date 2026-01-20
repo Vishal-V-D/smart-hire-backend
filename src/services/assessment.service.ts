@@ -1117,7 +1117,7 @@ export const publishAssessment = async (id: string, organizerId: string): Promis
 export const recalculateTotals = async (assessmentId: string): Promise<void> => {
     const assessment = await repo().findOne({
         where: { id: assessmentId },
-        relations: ["sections", "sections.questions", "sections.problems"],
+        relations: ["sections", "sections.questions", "sections.problems", "sections.sqlQuestions"],
     });
 
     if (!assessment) return;
@@ -1127,16 +1127,36 @@ export const recalculateTotals = async (assessmentId: string): Promise<void> => 
     let totalSectionTime = 0;
 
     for (const section of assessment.sections || []) {
+        let sectionQuestionCount = 0; // Track per-section count to update section entity
+
         // Count regular questions
-        totalQuestions += (section.questions || []).length;
+        const qCount = (section.questions || []).length;
+        sectionQuestionCount += qCount;
+        totalQuestions += qCount;
         for (const question of section.questions || []) {
             totalMarks += question.marks || section.marksPerQuestion;
         }
 
         // Count coding problems
-        totalQuestions += (section.problems || []).length;
+        const pCount = (section.problems || []).length;
+        sectionQuestionCount += pCount;
+        totalQuestions += pCount;
         for (const sp of section.problems || []) {
             totalMarks += sp.marks || 10;
+        }
+
+        // Count SQL questions
+        const sCount = (section.sqlQuestions || []).length;
+        sectionQuestionCount += sCount;
+        totalQuestions += sCount;
+        for (const sqlQ of section.sqlQuestions || []) {
+            totalMarks += sqlQ.marks || 10;
+        }
+
+        // Update section's cached question count if it differs
+        if (section.questionCount !== sectionQuestionCount) {
+            section.questionCount = sectionQuestionCount;
+            await AppDataSource.getRepository(AssessmentSection).save(section);
         }
 
         // Sum section time
